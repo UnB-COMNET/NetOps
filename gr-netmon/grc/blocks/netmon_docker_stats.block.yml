@@ -1,0 +1,39 @@
+id: netmon_docker_stats
+label: Docker Stats (auto)
+category: 'System/Monitoring'
+flags: [python]
+file_format: 1
+
+parameters:
+  - id: containers
+    label: Containers (comma-separated)
+    dtype: string
+    default: ''
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 3.0
+  - id: log_to_file
+    label: Log to console
+    dtype: bool
+    default: false
+
+inputs: []
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.docker_stats import DockerStats
+  make: |
+    DockerStats(containers=${containers}, interval=${interval}, log_to_file=${log_to_file})
+
+ports:
+  msg_out:
+    - metrics
+
+documentation: |
+  Emits JSON metrics from `docker stats --no-stream --format` for selected containers.

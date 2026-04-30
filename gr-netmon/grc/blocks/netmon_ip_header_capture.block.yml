@@ -1,0 +1,41 @@
+id: netmon_ip_header_capture
+label: IP Header Capture (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: container_name
+    label: Container Name
+    dtype: string
+    default: h1
+  - id: interface
+    label: Interface
+    dtype: string
+    default: eth0
+  - id: count
+    label: Packets per interval
+    dtype: int
+    default: 20
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 5.0
+  - id: filter
+    label: Tcpdump filter
+    dtype: string
+    default: ip
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+templates:
+  imports: |
+    from netmon.ip_header_capture import IPHeaderCapture
+  make: |
+    IPHeaderCapture(container_name=${container_name}, interface=${interface}, count=${count}, interval=${interval}, filter=${filter}, log_to_file=${log_to_file}, log_dir=${log_dir})
+documentation: |
+  Samples IP headers via tcpdump inside a container at intervals and logs to raw.

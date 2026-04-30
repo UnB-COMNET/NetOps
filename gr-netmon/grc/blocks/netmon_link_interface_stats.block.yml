@@ -1,0 +1,40 @@
+id: netmon_link_interface_stats
+label: Link Interface Stats (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: container_name
+    label: Container Name
+    dtype: string
+    default: h1
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 2.0
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+templates:
+  imports: |
+    from netmon.link_interface_stats import LinkInterfaceStats
+  make: |
+    LinkInterfaceStats(container_name=${container_name}, interval=${interval}, log_to_file=${log_to_file}, log_dir=${log_dir})
+documentation: |
+  Polls `ip -s link` counters inside a Docker container and logs to raw.
+
+inputs: []
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+ports:
+  msg_out:
+    - metrics

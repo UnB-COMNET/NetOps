@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Instalar NetOps Studio
+GenericName=Instalador NetOps
+Comment=Clique com botão direito → Permitir execução → Clique duplo para instalar
+Exec=bash /home/jon/profissa-sdn-framework-1/desktop/install.sh
+Icon=utilities-terminal
+Terminal=true
+StartupNotify=true
+Categories=System;
+Keywords=instalar;netops;SDN;network;

@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-0: 10 12 18;
+  --bg-1: 14 18 28;
+  --bg-2: 20 26 40;
+
+  --fg-0: 233 238 255;
+  --fg-1: 162 173 205;
+
+  --border-0: 40 49 73;
+
+  /* accents only for alerts/status */
+  --accent-ok: 38 203 187; /* aqua */
+  --accent-danger: 239 68 68; /* red */
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--bg-0));
+  color: rgb(var(--fg-0));
+}
+
+* {
+  scrollbar-color: rgb(var(--border-0)) rgb(var(--bg-0));
+}
+
+/* React Flow baseline */
+.react-flow__attribution {
+  display: none;
+}

@@ -1,0 +1,40 @@
+id: netmon_openflow_session
+label: OpenFlow Session (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: container_name
+    label: Switch Container
+    dtype: string
+    default: s1
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 5.0
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+templates:
+  imports: |
+    from netmon.openflow_session import OpenFlowSessionMonitor
+  make: |
+    OpenFlowSessionMonitor(container_name=${container_name}, interval=${interval}, log_to_file=${log_to_file}, log_dir=${log_dir})
+documentation: |
+  Logs OpenFlow session details using `ovs-ofctl show` and `ovs-vsctl show` inside the switch container.
+
+inputs: []
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+ports:
+  msg_out:
+    - metrics

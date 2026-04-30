@@ -1,0 +1,215 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/jon/profissa-sdn-framework
+plugins: asyncio-1.3.0, cov-7.0.0
+asyncio: mode=strict, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 50 items
+
+tests/test_alerts.py [2025-01-01 00:00:00] ALERTA: Latência média 250.00ms > 100.0ms em host_ping_auto.txt
+[2025-01-01 00:00:00] ALERTA: Jitter 100.00ms > 0.0ms em host_ping_auto.txt
+...
+tests/test_dns_resolver.py [DNS] Consulta example.com via 1.1.1.1: 0.0100s
+.[DNS] Erro consultando example.com via 1.1.1.1: boom
+.
+tests/test_docker_stats.py {'ts': 1.0, 'ts_iso': '2025-01-01', 'module': 'docker_stats', 'containers': [{'Name': 'a', 'CPUPerc': '1%', 'MemUsage': '1MiB / 1GiB', 'MemPerc': '1%', 'NetIO': '0B / 0B', 'BlockIO': '0B / 0B'}]}
+.
+tests/test_exporter_pcap.py ok...
+tests/test_forwarding_table_s1.py [ForwardingTableS1] init container=s1 interval=5.0 bridge_override=None
+[ForwardingTableS1] init container=s1 interval=5.0 bridge_override=None
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+[2025-01-01 00:00:00] bridge=br0
+Prio   Pkts  ΔPkt    Bytes     ΔB Actions
+--------------------------------------------------
+   1     10    +0       20     +0 output:1
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+[ForwardingTableS1] auto-start loop iniciado
+.
+tests/test_host_ping.py ..[2025-01-01 00:00:00] h1 -> 1.1.1.1 latency=0.010000s
+.[2025-12-26 20:20:54] h1 -> 1.1.1.1 latency=0.005000s
+..
+tests/test_ip_header_capture.py [2025-01-01 00:00:00] container=h1 iface=eth0 tcpdump headers
+IP pkt line
+...
+tests/test_link_and_transport.py [LinkInterfaceStats] init container=c1 interval=0.0
+[2025-01-01 00:00:00] container=c1 ip -s link
+ip -s link output
+.[LinkInterfaceStats] init container=c1 interval=0.0
+.[LinkInterfaceStats] init container=c1 interval=0.0
+.[2025-01-01 00:00:00] container=h1
+== ss -s ==
+Tcp:
+InSegs 1
+Tcp:
+InSegs 2
+Udp:
+InDatagrams 1
+Udp:
+InDatagrams 2
+== /proc/net/snmp ==
+Tcp:
+InSegs 1
+Tcp:
+InSegs 2
+Udp:
+InDatagrams 1
+Udp:
+InDatagrams 2
+....
+tests/test_metrics.py .....
+tests/test_monitor.py ......[2025-12-26T23:20:54.682874Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+2025-12-26T23:20:54.682896Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+.[2025-12-26T23:20:54.685248Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+2025-12-26T23:20:54.685278Z [system] cpu_pct=10
+2025-12-26T23:20:54.685278Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:20:54.685278Z [h1] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:20:54.685278Z [h1] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:20:54.685278Z [controller] endpoints=1
+.
+tests/test_monitor_copy.py ..[2025-12-26T23:20:54.690136Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+Throughput: h1 -> h1 (udp=False) | Capture IF: eth0
+2025-12-26T23:20:54.690172Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+.[2025-12-26T23:20:54.692917Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1', 'h2': '2.2.2.2'}
+Throughput: h1 -> h2 (udp=False) | Capture IF: eth0
+2025-12-26T23:20:54.692944Z [system] cpu_pct=10
+2025-12-26T23:20:54.692944Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:20:54.692944Z [h1] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:20:54.692944Z [h1] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:20:54.692944Z [h2] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:20:54.692944Z [h2] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:20:54.692944Z [h2] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:20:54.692944Z [controller] endpoints=1
+2025-12-26T23:20:54.692944Z [throughput h1->h2] proto=tcp sent=1 Mbps recv=1 Mbps
+2025-12-26T23:20:54.692944Z [capture eth0] TCP=1 UDP=1 ICMP=1 total=3
+.
+tests/test_openflow_session.py session data...
+tests/test_sdn_dashboard.py ..
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.10.12-final-0 _______________
+
+Name                                              Stmts   Miss  Cover
+---------------------------------------------------------------------
+gr-netmon/python/netmon/__init__.py                  10      0   100%
+gr-netmon/python/netmon/alerts.py                    92     15    84%
+gr-netmon/python/netmon/dns_resolver.py              36      1    97%
+gr-netmon/python/netmon/docker_stats.py              48     13    73%
+gr-netmon/python/netmon/exporter.py                  54      8    85%
+gr-netmon/python/netmon/forwarding_table_s1.py      143     35    76%
+gr-netmon/python/netmon/host_ping.py                 99     12    88%
+gr-netmon/python/netmon/ip_header_capture.py         76     16    79%
+gr-netmon/python/netmon/link_interface_stats.py      95     26    73%
+gr-netmon/python/netmon/metrics.py                   21      0   100%
+gr-netmon/python/netmon/openflow_session.py          72     18    75%
+gr-netmon/python/netmon/transport_stats.py           92     16    83%
+monitor copy.py                                     353    199    44%
+monitor.py                                          268    100    63%
+sdn_dashboard.py                                     41      4    90%
+tests/conftest.py                                    79     15    81%
+tests/test_alerts.py                                 28      0   100%
+tests/test_dns_resolver.py                           31      0   100%
+tests/test_docker_stats.py                           10      0   100%
+tests/test_exporter_pcap.py                          28      1    96%
+tests/test_forwarding_table_s1.py                    41      1    98%
+tests/test_host_ping.py                              49      1    98%
+tests/test_ip_header_capture.py                      30      1    97%
+tests/test_link_and_transport.py                     67      2    97%
+tests/test_metrics.py                                37      0   100%
+tests/test_monitor.py                               129      2    98%
+tests/test_monitor_copy.py                           84      2    98%
+tests/test_openflow_session.py                       34      1    97%
+tests/test_sdn_dashboard.py                          77      2    97%
+---------------------------------------------------------------------
+TOTAL                                              2224    491    78%
+============================== 50 passed in 0.50s ==============================
+
+==== pytest run 2025-12-26T23:22:41.807379Z ====/n============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/jon/profissa-sdn-framework
+plugins: asyncio-1.3.0, cov-7.0.0
+asyncio: mode=strict, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 50 items
+
+tests/test_alerts.py [2025-01-01 00:00:00] ALERTA: Latência média 250.00ms > 100.0ms em host_ping_auto.txt
+[2025-01-01 00:00:00] ALERTA: Jitter 100.00ms > 0.0ms em host_ping_auto.txt
+...
+tests/test_dns_resolver.py [DNS] Consulta example.com via 1.1.1.1: 0.0100s
+.[DNS] Erro consultando example.com via 1.1.1.1: boom
+.
+tests/test_docker_stats.py {'ts': 1.0, 'ts_iso': '2025-01-01', 'module': 'docker_stats', 'containers': [{'Name': 'a', 'CPUPerc': '1%', 'MemUsage': '1MiB / 1GiB', 'MemPerc': '1%', 'NetIO': '0B / 0B', 'BlockIO': '0B / 0B'}]}
+.
+tests/test_exporter_pcap.py ok...
+tests/test_forwarding_table_s1.py [ForwardingTableS1] init container=s1 interval=5.0 bridge_override=None
+[ForwardingTableS1] init container=s1 interval=5.0 bridge_override=None
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+[2025-01-01 00:00:00] bridge=br0
+Prio   Pkts  ΔPkt    Bytes     ΔB Actions
+--------------------------------------------------
+   1     10    +0       20     +0 output:1
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+.[ForwardingTableS1] init container=s1 interval=0.0 bridge_override=None
+[ForwardingTableS1] auto-start loop iniciado
+.
+tests/test_host_ping.py ..[2025-01-01 00:00:00] h1 -> 1.1.1.1 latency=0.010000s
+.[2025-12-26 20:22:42] h1 -> 1.1.1.1 latency=0.005000s
+..
+tests/test_ip_header_capture.py [2025-01-01 00:00:00] container=h1 iface=eth0 tcpdump headers
+IP pkt line
+...
+tests/test_link_and_transport.py [LinkInterfaceStats] init container=c1 interval=0.0
+[2025-01-01 00:00:00] container=c1 ip -s link
+ip -s link output
+.[LinkInterfaceStats] init container=c1 interval=0.0
+.[LinkInterfaceStats] init container=c1 interval=0.0
+.[2025-01-01 00:00:00] container=h1
+== ss -s ==
+Tcp:
+InSegs 1
+Tcp:
+InSegs 2
+Udp:
+InDatagrams 1
+Udp:
+InDatagrams 2
+== /proc/net/snmp ==
+Tcp:
+InSegs 1
+Tcp:
+InSegs 2
+Udp:
+InDatagrams 1
+Udp:
+InDatagrams 2
+....
+tests/test_metrics.py .....
+tests/test_monitor.py ......[2025-12-26T23:22:42.264231Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+2025-12-26T23:22:42.264250Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+.[2025-12-26T23:22:42.267534Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+2025-12-26T23:22:42.267553Z [system] cpu_pct=10
+2025-12-26T23:22:42.267553Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:22:42.267553Z [h1] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:22:42.267553Z [h1] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:22:42.267553Z [controller] endpoints=1
+.
+tests/test_monitor_copy.py ..[2025-12-26T23:22:42.271514Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1'}
+Throughput: h1 -> h1 (udp=False) | Capture IF: eth0
+2025-12-26T23:22:42.271542Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+.[2025-12-26T23:22:42.273833Z] SDN Monitor starting. Nodes: {'h1': '1.1.1.1', 'h2': '2.2.2.2'}
+Throughput: h1 -> h2 (udp=False) | Capture IF: eth0
+2025-12-26T23:22:42.273853Z [system] cpu_pct=10
+2025-12-26T23:22:42.273853Z [h1] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:22:42.273853Z [h1] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:22:42.273853Z [h1] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:22:42.273853Z [h2] ICMP avg=1.00ms jitter=0.00ms loss=0.0% ok=True
+2025-12-26T23:22:42.273853Z [h2] TCP@80 avgConn=1.00ms jitter=0.00ms success=100.0%
+2025-12-26T23:22:42.273853Z [h2] UDP@53 sendAvg=1.00ms jitter=0.00ms
+2025-12-26T23:22:42.273853Z [controller] endpoints=1
+2025-12-26T23:22:42.273853Z [throughput h1->h2] proto=tcp sent=1 Mbps recv=1 Mbps
+2025-12-26T23:22:42.273853Z [capture eth0] TCP=1 UDP=1 ICMP=1 total=3
+.
+tests/test_openflow_session.py session data...
+tests/test_sdn_dashboard.py ..
+
+============================== 50 passed in 0.22s ==============================
+
+(exit code: 0)

@@ -1,0 +1,46 @@
+id: netmon_metric_mttd_sec_msg
+label: Metric mttd_sec (msg)
+category: 'Network/Metrics/service'
+flags: [python]
+file_format: 1
+documentation: 'Tempo médio de detecção (MTTD)'
+
+parameters:
+  - id: node
+    label: Node
+    dtype: string
+    default: node
+  - id: value
+    label: Default value
+    dtype: real
+    default: 0.0
+  - id: labels_json
+    label: Labels JSON
+    dtype: string
+    default: '{}'
+  - id: details_json
+    label: Details JSON
+    dtype: string
+    default: '{}'
+
+inputs:
+  - domain: message
+    id: tick
+    label: tick
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.metric_emitter import MetricEmitterMsg
+  make: |
+    MetricEmitterMsg(metric_name='mttd_sec', layer='service', unit='s', node=${node}, value=${value}, labels_json=${labels_json}, details_json=${details_json})
+
+ports:
+  msg_in:
+    - tick
+  msg_out:
+    - metrics

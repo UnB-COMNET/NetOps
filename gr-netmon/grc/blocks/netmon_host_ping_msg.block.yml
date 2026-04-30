@@ -1,0 +1,46 @@
+id: netmon_host_ping_msg
+label: Host Ping (msg)
+category: '[Network]/Monitoring'
+flags: [python]
+file_format: 1
+documentation: 'Ping único via mensagem dentro de um container Docker; publica latência em string'
+
+parameters:
+- id: container_name
+  label: Container
+  dtype: string
+  default: h1
+- id: target_ip
+  label: Target IP
+  dtype: string
+  default: 172.18.0.3
+- id: timeout
+  label: Timeout (s)
+  dtype: real
+  default: 2.0
+
+inputs:
+- domain: message
+  id: tick
+  label: tick
+
+outputs:
+- domain: message
+  id: out
+  label: out
+- domain: message
+  id: metrics
+  label: metrics
+
+templates:
+  imports: |
+    from netmon.host_ping import HostPingMsg
+  make: |
+    HostPingMsg(container_name=${container_name}, target_ip=${target_ip}, timeout=${timeout})
+
+ports:
+  msg_in:
+  - tick
+  msg_out:
+  - out
+  - metrics

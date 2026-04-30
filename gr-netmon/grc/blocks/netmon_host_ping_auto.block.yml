@@ -1,0 +1,54 @@
+id: netmon_host_ping_auto
+label: Host Ping (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+documentation: 'Ping periódico dentro de container Docker; imprime e emite latência em stream float32'
+
+parameters:
+  - id: container_name
+    label: Container
+    dtype: string
+    default: h1
+  - id: target_ip
+    label: Target IP
+    dtype: string
+    default: 172.18.0.3
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 1.0
+  - id: timeout
+    label: Timeout (s)
+    dtype: real
+    default: 2.0
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+
+inputs: []
+
+outputs:
+  - domain: stream
+    id: out
+    label: latency
+    dtype: float
+    vlen: 1
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.host_ping import HostPingAuto
+  make: |
+    HostPingAuto(container_name=${container_name}, target_ip=${target_ip}, interval=${interval}, timeout=${timeout}, log_to_file=${log_to_file}, log_dir=${log_dir})
+
+ports:
+  msg_out:
+    - metrics

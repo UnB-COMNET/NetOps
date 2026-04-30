@@ -1,0 +1,40 @@
+id: netmon_transport_stats
+label: Transport Stats (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: container_name
+    label: Container Name
+    dtype: string
+    default: h1
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 2.0
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+templates:
+  imports: |
+    from netmon.transport_stats import TransportStats
+  make: |
+    TransportStats(container_name=${container_name}, interval=${interval}, log_to_file=${log_to_file}, log_dir=${log_dir})
+documentation: |
+  Logs transport-layer metrics: `ss -s` and `/proc/net/snmp` inside container.
+
+inputs: []
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+ports:
+  msg_out:
+    - metrics

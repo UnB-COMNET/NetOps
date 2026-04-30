@@ -1,0 +1,116 @@
+{
+  "environment": {
+    "mode": "docker",
+    "docker_network": "sdn_lab_net",
+    "ssh_key_path": "~/.ssh/id_rsa"
+  },
+  "controllers": [
+    {
+      "id": "ctrl-ryu",
+      "type": "ryu",
+      "api_base_url": "http://127.0.0.1:8080",
+      "openflow": { "host": "127.0.0.1", "port": 6633 },
+      "auth": { "mode": "none", "token": null, "username": null, "password": null }
+    }
+  ],
+  "default_controller": "ctrl-ryu",
+  "nodes": [
+    {
+      "id": "c1",
+      "role": "controller",
+      "mgmt_ip": "172.20.0.10",
+      "image": "alexandremitsurukaihara/lst2.0:ryucontroller",
+      "container_name": "c1",
+      "meta": { "ssh_user": "root", "ssh_port": 22 }
+    },
+    {
+      "id": "s1",
+      "role": "switch",
+      "type": "ovs",
+      "mgmt_ip": "172.20.0.11",
+      "image": "s1-img",
+      "container_name": "s1",
+      "bridge": "br-s1",
+      "datapath_id": "0000000000000001",
+      "ofctl": { "host": "172.20.0.11", "port": 6640 },
+      "meta": {}
+    },
+    {
+      "id": "h1",
+      "role": "host",
+      "mgmt_ip": "172.20.0.12",
+      "image": "alexandremitsurukaihara/lst2.0:host",
+      "container_name": "h1",
+      "meta": { "ssh_user": "root", "ssh_port": 22 }
+    },
+    {
+      "id": "h2",
+      "role": "host",
+      "mgmt_ip": "172.20.0.13",
+      "image": "alexandremitsurukaihara/lst2.0:host",
+      "container_name": "h2",
+      "meta": { "ssh_user": "root", "ssh_port": 22 }
+    }
+  ],
+  "links": [
+    { "source": "s1", "target": "h1", "bandwidth_mbps": 1000, "delay_ms": 1, "loss_pct": 0.0 },
+    { "source": "s1", "target": "h2", "bandwidth_mbps": 1000, "delay_ms": 1, "loss_pct": 0.0 },
+    { "source": "s1", "target": "c1", "bandwidth_mbps": 1000, "delay_ms": 1, "loss_pct": 0.0 }
+  ],
+  "traffic_profiles": [
+    {
+      "name": "ping-baseline",
+      "generator": "ping",
+      "src": "h1",
+      "dst": "h2",
+      "protocol": "icmp",
+      "duration_sec": 30,
+      "params": { "count": "20", "interval": "1s" }
+    }
+  ],
+  "metric_plan": {
+    "metrics": ["latency_ms", "packet_loss_pct", "throughput_mbps"],
+    "interval_sec": 5.0,
+    "labels": ["experiment_id", "run_id", "topology_id", "src", "dst"],
+    "metric_layers": {
+      "latency_ms": "network",
+      "packet_loss_pct": "network",
+      "throughput_mbps": "transport"
+    }
+  },
+  "flow_templates": [
+    {
+      "name": "h1_to_h2",
+      "controller": "ctrl-ryu",
+      "match": { "in_port": "1", "eth_type": "0x0800" },
+      "actions": { "output": "2" },
+      "priority": 100
+    },
+    {
+      "name": "h2_to_h1",
+      "controller": "ctrl-ryu",
+      "match": { "in_port": "2", "eth_type": "0x0800" },
+      "actions": { "output": "1" },
+      "priority": 100
+    }
+  ],
+  "metric_layers": {
+    "physical": true,
+    "link": true,
+    "network": true,
+    "transport": true,
+    "application": true,
+    "control": true,
+    "dataplane": true
+  },
+  "layer_descriptions": {
+    "physical": "Interface counters, erros, descartes, potencia e temperatura quando disponivel.",
+    "link": "Utilizacao de enlace, perda e jitter por VLAN/porta/queue.",
+    "network": "Latencia ICMP, perda, rotas, ARP/ND e reachability.",
+    "transport": "RTT e retransmissoes TCP, jitter e perda UDP, throughput ativo.",
+    "application": "Tempo de resposta HTTP/DNS/TLS, disponibilidade de servico.",
+    "control": "Saude do controlador, latencia control-plane, sessoes OpenFlow.",
+    "dataplane": "Counters de flows/tabelas OpenFlow e estatisticas de porta."
+  },
+  "metadata": {}
+}
