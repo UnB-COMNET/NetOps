@@ -1,0 +1,59 @@
+id: netmon_metric_snmp_ip_in_receives_auto
+label: Metric snmp_ip_in_receives (auto)
+category: 'Network/Metrics/transport'
+flags: [python]
+file_format: 1
+documentation: 'IP InReceives'
+
+parameters:
+  - id: node
+    label: Node
+    dtype: string
+    default: node
+  - id: value
+    label: Value
+    dtype: real
+    default: 0.0
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 1.0
+  - id: jitter
+    label: Jitter (+/-)
+    dtype: real
+    default: 0.0
+  - id: labels_json
+    label: Labels JSON
+    dtype: string
+    default: '{}'
+  - id: details_json
+    label: Details JSON
+    dtype: string
+    default: '{}'
+
+inputs:
+  - domain: message
+    id: tick
+    label: tick
+
+outputs:
+  - domain: stream
+    id: out
+    label: value
+    dtype: float
+    vlen: 1
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.metric_emitter import MetricEmitterAuto
+  make: |
+    MetricEmitterAuto(metric_name='snmp_ip_in_receives', layer='transport', unit='count', node=${node}, value=${value}, interval=${interval}, jitter=${jitter}, labels_json=${labels_json}, details_json=${details_json})
+
+ports:
+  msg_in:
+    - tick
+  msg_out:
+    - metrics

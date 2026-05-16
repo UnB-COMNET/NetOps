@@ -1,0 +1,41 @@
+id: netmon_pcap_exporter
+label: PCAP Exporter (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: container_name
+    label: Container Name
+    dtype: string
+    default: h1
+  - id: interface
+    label: Interface
+    dtype: string
+    default: eth0
+  - id: filter
+    label: Tcpdump filter
+    dtype: string
+    default: ip
+  - id: pcap_dir
+    label: PCAP dir (in container)
+    dtype: string
+    default: /tmp
+  - id: file_prefix
+    label: File prefix
+    dtype: string
+    default: capture
+  - id: duration
+    label: Seconds per file
+    dtype: int
+    default: 10
+  - id: interval
+    label: Rotation interval (s)
+    dtype: real
+    default: 10.0
+templates:
+  imports: |
+    from netmon.exporter import PCAPExporter
+  make: |
+    PCAPExporter(container_name=${container_name}, interface=${interface}, filter=${filter}, pcap_dir=${pcap_dir}, file_prefix=${file_prefix}, duration=${duration}, interval=${interval})
+documentation: |
+  Runs tcpdump inside container and saves rotating PCAP files.

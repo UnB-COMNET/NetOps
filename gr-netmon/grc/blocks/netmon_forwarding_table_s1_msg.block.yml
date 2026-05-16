@@ -1,0 +1,42 @@
+id: netmon_forwarding_table_s1_msg
+label: Forwarding Table S1 (msg)
+category: '[Network]/Monitoring'
+flags: [python]
+file_format: 1
+documentation: 'Message-driven version: send any msg to tick; outputs formatted table on out'
+
+parameters:
+- id: container_name
+  label: Container Name
+  dtype: string
+  default: s1
+- id: update_interval
+  label: Update Interval (s)
+  dtype: real
+  default: 5.0
+- id: colorize
+  label: Colorize
+  dtype: bool
+  default: false
+
+inputs:
+- domain: message
+  id: tick
+  label: tick
+
+outputs:
+- domain: message
+  id: out
+  label: out
+
+templates:
+  imports: |
+    from netmon.forwarding_table_s1 import ForwardingTableS1
+  make: |
+    ForwardingTableS1(container_name=${container_name}, update_interval=${update_interval}, colorize=${colorize}, auto_start=False)
+
+ports:
+  msg_in:
+  - tick
+  msg_out:
+  - out

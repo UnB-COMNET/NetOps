@@ -1,0 +1,40 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Raw large data files
+raw/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Temp files
+temp/
+
+# Node modules
+node_modules/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs / guides (do not commit)
+/platform/docs/**
+/scripts/**
+/explicacao_LLTB.txt
+/DEPLOY_GUIDE.md
+/CODE_OF_CONDUCT.md

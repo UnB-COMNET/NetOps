@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <!-- Deep space background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0a0e1a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <!-- Core glow gradient (electric cyan) -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00f5ff" stop-opacity="1"/>
+      <stop offset="45%"  stop-color="#0284c7" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0a0e1a" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Ring arc gradient (teal → blue) -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <!-- Node pulse gradient -->
+    <radialGradient id="nodePulse" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="60%"  stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Gloss overlay -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="50%"  stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Drop shadow filter -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="roundRect">
+      <rect width="256" height="256" rx="40"/>
+    </clipPath>
+  </defs>
+
+  <!-- ── Background ── -->
+  <rect width="256" height="256" rx="40" fill="url(#bgGrad)"/>
+
+  <!-- Subtle grid lines (top-left quadrant effect) -->
+  <g stroke="#1e3a5f" stroke-width="0.6" opacity="0.4" clip-path="url(#roundRect)">
+    <line x1="0"   y1="64"  x2="256" y2="64"/>
+    <line x1="0"   y1="128" x2="256" y2="128"/>
+    <line x1="0"   y1="192" x2="256" y2="192"/>
+    <line x1="64"  y1="0"   x2="64"  y2="256"/>
+    <line x1="128" y1="0"   x2="128" y2="256"/>
+    <line x1="192" y1="0"   x2="192" y2="256"/>
+  </g>
+
+  <!-- ── Outer orbit ring (dashed) ── -->
+  <circle cx="128" cy="114" r="72"
+    fill="none"
+    stroke="url(#ringGrad)"
+    stroke-width="1.5"
+    stroke-dasharray="8 5"
+    opacity="0.5"
+    filter="url(#glow)"/>
+
+  <!-- ── Mid orbit ring (solid arc, 270°) ── -->
+  <!-- Arc: centre 128,114  radius 54  from 135° to 45° clockwise -->
+  <path d="M 89.8 152.2 A 54 54 0 1 1 166.2 152.2"
+    fill="none"
+    stroke="url(#ringGrad)"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    opacity="0.85"
+    filter="url(#glow)"/>
+
+  <!-- ── Core aura / halo ── -->
+  <circle cx="128" cy="114" r="34" fill="url(#coreGlow)" opacity="0.25" filter="url(#softGlow)"/>
+
+  <!-- ── Central hexagon (network node symbol) ── -->
+  <!-- Regular hexagon centred at 128,114 with size 22 -->
+  <polygon
+    points="128,92  147.1,103  147.1,125  128,136  108.9,125  108.9,103"
+    fill="#0d2240"
+    stroke="url(#ringGrad)"
+    stroke-width="2"
+    filter="url(#glow)"/>
+  <!-- Inner hex fill glow -->
+  <polygon
+    points="128,96  143.6,105  143.6,123  128,132  112.4,123  112.4,105"
+    fill="#00f5ff"
+    opacity="0.12"/>
+
+  <!-- ── Satellite nodes connected to centre ── -->
+  <!-- Node positions: top, top-right, bottom-right, bottom-left, top-left -->
+  <!-- Lines first (so nodes sit on top) -->
+  <g stroke="#00f5ff" stroke-width="1.2" opacity="0.55" stroke-dasharray="3 3">
+    <line x1="128" y1="92"  x2="128" y2="60"/>   <!-- top -->
+    <line x1="147" y1="103" x2="175" y2="80"/>   <!-- top-right -->
+    <line x1="147" y1="125" x2="178" y2="148"/>  <!-- bottom-right -->
+    <line x1="109" y1="125" x2="78"  y2="148"/>  <!-- bottom-left -->
+    <line x1="109" y1="103" x2="81"  y2="80"/>   <!-- top-left -->
+  </g>
+
+  <!-- Nodes (small circles) -->
+  <g filter="url(#glow)">
+    <circle cx="128" cy="56"  r="5" fill="#00f5ff" opacity="0.9"/>
+    <circle cx="179" cy="76"  r="4" fill="#6366f1" opacity="0.9"/>
+    <circle cx="182" cy="151" r="4" fill="#0ea5e9" opacity="0.9"/>
+    <circle cx="74"  cy="151" r="4" fill="#0ea5e9" opacity="0.9"/>
+    <circle cx="77"  cy="76"  r="4" fill="#6366f1" opacity="0.9"/>
+  </g>
+  <!-- Node auras -->
+  <circle cx="128" cy="56"  r="9"  fill="#00f5ff" opacity="0.12"/>
+  <circle cx="179" cy="76"  r="7"  fill="#6366f1" opacity="0.12"/>
+  <circle cx="182" cy="151" r="7"  fill="#0ea5e9" opacity="0.12"/>
+  <circle cx="74"  cy="151" r="7"  fill="#0ea5e9" opacity="0.12"/>
+  <circle cx="77"  cy="76"  r="7"  fill="#6366f1" opacity="0.12"/>
+
+  <!-- ── Signal pulse dot in hex centre ── -->
+  <circle cx="128" cy="114" r="5" fill="url(#nodePulse)" filter="url(#softGlow)"/>
+
+  <!-- ── Wordmark ── -->
+  <!-- "NetOps" — bold, tight, electric white -->
+  <text x="128" y="185"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Impact', sans-serif"
+    font-size="26"
+    font-weight="900"
+    letter-spacing="1"
+    fill="#f0f9ff">NetOps</text>
+
+  <!-- "STUDIO" — spaced caps, cyan accent, smaller -->
+  <text x="128" y="203"
+    text-anchor="middle"
+    font-family="'Arial', sans-serif"
+    font-size="10.5"
+    font-weight="400"
+    letter-spacing="5"
+    fill="#00f5ff"
+    opacity="0.9">STUDIO</text>
+
+  <!-- Thin separator line under NetOps -->
+  <line x1="88" y1="189" x2="168" y2="189" stroke="url(#ringGrad)" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- ── Gloss overlay (top) ── -->
+  <rect width="256" height="128" rx="40" fill="url(#gloss)" clip-path="url(#roundRect)"/>
+
+  <!-- ── Rounded border highlight ── -->
+  <rect width="256" height="256" rx="40"
+    fill="none"
+    stroke="url(#ringGrad)"
+    stroke-width="1.5"
+    opacity="0.3"/>
+</svg>

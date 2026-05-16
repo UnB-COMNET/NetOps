@@ -1,0 +1,42 @@
+id: netmon_dns_resolver
+label: DNS Resolver Monitor
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+documentation: 'Measures DNS query latency against the specified DNS server; emits float32 latency; -1.0 on error; 0.0 when idle'
+
+parameters:
+- id: dns_server
+  label: DNS Server
+  dtype: string
+  default: 8.8.8.8
+- id: query_name
+  label: Query Name
+  dtype: string
+  default: google.com
+- id: interval
+  label: Interval (s)
+  dtype: real
+  default: 1.0
+
+inputs: []
+
+outputs:
+- domain: stream
+  id: out
+  label: latency
+  dtype: float
+  vlen: 1
+- domain: message
+  id: metrics
+  label: metrics
+
+templates:
+  imports: |
+    from netmon.dns_resolver import DNSResolverMonitorBlock
+  make: |
+    DNSResolverMonitorBlock(dns_server=${dns_server}, query_name=${query_name}, interval=${interval})
+
+ports:
+  msg_out:
+    - metrics

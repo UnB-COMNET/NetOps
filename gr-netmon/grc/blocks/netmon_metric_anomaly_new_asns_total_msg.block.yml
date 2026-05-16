@@ -1,0 +1,46 @@
+id: netmon_metric_anomaly_new_asns_total_msg
+label: Metric anomaly_new_asns_total (msg)
+category: 'Network/Metrics/service'
+flags: [python]
+file_format: 1
+documentation: 'Anomalias: novos ASNs'
+
+parameters:
+  - id: node
+    label: Node
+    dtype: string
+    default: node
+  - id: value
+    label: Default value
+    dtype: real
+    default: 0.0
+  - id: labels_json
+    label: Labels JSON
+    dtype: string
+    default: '{}'
+  - id: details_json
+    label: Details JSON
+    dtype: string
+    default: '{}'
+
+inputs:
+  - domain: message
+    id: tick
+    label: tick
+
+outputs:
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.metric_emitter import MetricEmitterMsg
+  make: |
+    MetricEmitterMsg(metric_name='anomaly_new_asns_total', layer='service', unit='count', node=${node}, value=${value}, labels_json=${labels_json}, details_json=${details_json})
+
+ports:
+  msg_in:
+    - tick
+  msg_out:
+    - metrics

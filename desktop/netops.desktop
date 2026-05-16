@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=NetOps Studio
+GenericName=Network Operations Studio
+Comment=Network Operations & Monitoring Platform for SDN Research
+Exec=__INSTALL_DIR__/run_netops.sh
+Icon=netops
+Terminal=false
+StartupNotify=true
+Categories=Network;Science;Education;
+Keywords=SDN;NetOps;network;monitoring;operations;research;

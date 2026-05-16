@@ -1,0 +1,41 @@
+id: netmon_alerts
+label: Alerts (auto)
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+parameters:
+  - id: files
+    label: Raw files (comma)
+    dtype: string
+    default: ./raw/host_ping_auto.txt
+  - id: interval
+    label: Interval (s)
+    dtype: real
+    default: 2.0
+  - id: latency_threshold_ms
+    label: Latency threshold (ms)
+    dtype: real
+    default: 50.0
+  - id: loss_threshold_pct
+    label: Loss threshold (%)
+    dtype: real
+    default: 10.0
+  - id: jitter_threshold_ms
+    label: Jitter threshold (ms)
+    dtype: real
+    default: 20.0
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: true
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+templates:
+  imports: |
+    from netmon.alerts import Alerts
+  make: |
+    Alerts(files=${files}, interval=${interval}, latency_threshold_ms=${latency_threshold_ms}, loss_threshold_pct=${loss_threshold_pct}, jitter_threshold_ms=${jitter_threshold_ms}, log_to_file=${log_to_file}, log_dir=${log_dir})
+documentation: |
+  Reads raw files and emits alerts when thresholds are exceeded, logging to `alerts.txt`.

@@ -1,0 +1,63 @@
+id: netmon_forwarding_table_s1
+label: Forwarding Table S1
+category: 'Network/Monitoring'
+flags: [python]
+file_format: 1
+documentation: 'Queries OVS flows inside the given Docker container and logs formatted table.'
+
+parameters:
+  - id: container_name
+    label: Container Name
+    dtype: string
+    default: s1
+  - id: update_interval
+    label: Update Interval (s)
+    dtype: real
+    default: 5.0
+  - id: colorize
+    label: Colorize
+    dtype: bool
+    default: false
+  - id: log_to_file
+    label: Log to file
+    dtype: bool
+    default: false
+  - id: log_dir
+    label: Log dir
+    dtype: string
+    default: ./raw
+  - id: auto_start
+    label: Auto start
+    dtype: bool
+    default: true
+  - id: bridge_override
+    label: Bridge override
+    dtype: string
+    default: ''
+
+inputs:
+  - domain: message
+    id: tick
+    label: tick
+
+outputs:
+  - domain: message
+    id: out
+    label: out
+  - domain: message
+    id: metrics
+    label: metrics
+
+templates:
+  imports: |
+    from netmon.forwarding_table_s1 import ForwardingTableS1
+  make: |
+    ForwardingTableS1(container_name=${container_name}, update_interval=${update_interval}, colorize=${colorize}, log_to_file=${log_to_file}, log_dir=${log_dir}, auto_start=${auto_start}, bridge_override=${bridge_override})
+
+ports:
+  msg_in:
+    - tick
+  msg_out:
+    - out
+    - metrics
+

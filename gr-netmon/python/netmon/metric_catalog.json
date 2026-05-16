@@ -1,0 +1,3455 @@
+[
+  {
+    "name": "e2e_path_availability_pct",
+    "description": "Disponibilidade do caminho (sucesso de probes sintéticos)",
+    "unit": "%",
+    "layer": "service",
+    "kind": "ratio",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "e2e_latency_ms_p50",
+    "description": "Latência E2E p50",
+    "unit": "ms",
+    "layer": "service",
+    "kind": "summary",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "e2e_latency_ms_p95",
+    "description": "Latência E2E p95",
+    "unit": "ms",
+    "layer": "service",
+    "kind": "summary",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "e2e_latency_ms_p99",
+    "description": "Latência E2E p99",
+    "unit": "ms",
+    "layer": "service",
+    "kind": "summary",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "e2e_jitter_ms_p95",
+    "description": "Jitter E2E p95",
+    "unit": "ms",
+    "layer": "service",
+    "kind": "summary",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "e2e_loss_pct",
+    "description": "Perda E2E",
+    "unit": "%",
+    "layer": "service",
+    "kind": "ratio",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "path_changes_total",
+    "description": "Mudanças de rota (path changes / ECMP hash changes)",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "mttd_sec",
+    "description": "Tempo médio de detecção (MTTD)",
+    "unit": "s",
+    "layer": "service",
+    "kind": "derived",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "incident_id"
+    ]
+  },
+  {
+    "name": "mttr_sec",
+    "description": "Tempo médio de restauração (MTTR)",
+    "unit": "s",
+    "layer": "service",
+    "kind": "derived",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "incident_id"
+    ]
+  },
+  {
+    "name": "worst_path_score",
+    "description": "Score derivado para rankear piores caminhos (loss/latency/jitter)",
+    "unit": null,
+    "layer": "service",
+    "kind": "derived",
+    "category": "e2e",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "if_link_up",
+    "description": "Status do link (up=1/down=0)",
+    "unit": "bool",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_flaps_total",
+    "description": "Contagem de flaps (up/down)",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_speed_mbps",
+    "description": "Velocidade negociada",
+    "unit": "Mbps",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_duplex_mismatch",
+    "description": "Mismatch de duplex (1=sim)",
+    "unit": "bool",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_in_bps",
+    "description": "Tráfego de entrada (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_out_bps",
+    "description": "Tráfego de saída (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_in_bps_p95",
+    "description": "Utilização de entrada p95 (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_in_bps_p99",
+    "description": "Utilização de entrada p99 (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_out_bps_p95",
+    "description": "Utilização de saída p95 (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_out_bps_p99",
+    "description": "Utilização de saída p99 (bits/s)",
+    "unit": "bps",
+    "layer": "physical",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_errors",
+    "description": "Interface errors",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_discards",
+    "description": "Interface discards",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_crc_errors",
+    "description": "CRC errors",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_fcs_errors_total",
+    "description": "FCS errors",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_alignment_errors_total",
+    "description": "Alignment errors",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_symbol_errors_total",
+    "description": "Symbol errors",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_physical_drops_total",
+    "description": "Drops físicos (quando possível separar de congestionamento)",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_rx_dbm",
+    "description": "Optical RX power",
+    "unit": "dBm",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_tx_dbm",
+    "description": "Optical TX power",
+    "unit": "dBm",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_osnr_db",
+    "description": "Optical OSNR",
+    "unit": "dB",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_bias_ma",
+    "description": "Optical bias current",
+    "unit": "mA",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_temp_c",
+    "description": "Optical module temperature",
+    "unit": "C",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_optic_threshold_violations_total",
+    "description": "Optical threshold violations",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_temp_c",
+    "description": "Interface temperature",
+    "unit": "C",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "if_mtu_effective_bytes",
+    "description": "MTU efetivo (detecção de inconsistências)",
+    "unit": "bytes",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "poe_power_w",
+    "description": "Consumo PoE",
+    "unit": "W",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "poe_events_total",
+    "description": "Eventos PoE",
+    "unit": "count",
+    "layer": "physical",
+    "kind": "counter",
+    "category": "health",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "poe_budget_w",
+    "description": "Budget PoE",
+    "unit": "W",
+    "layer": "physical",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "mac_table_size",
+    "description": "Tamanho da MAC table",
+    "unit": "count",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vlan"
+    ]
+  },
+  {
+    "name": "mac_churn_rate",
+    "description": "MAC churn rate",
+    "unit": "count/s",
+    "layer": "link",
+    "kind": "derived",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vlan"
+    ]
+  },
+  {
+    "name": "mac_moves_total",
+    "description": "MAC moves",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vlan"
+    ]
+  },
+  {
+    "name": "stp_root_changes_total",
+    "description": "STP root changes",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "instance"
+    ]
+  },
+  {
+    "name": "stp_topology_changes_total",
+    "description": "STP topology changes",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "instance"
+    ]
+  },
+  {
+    "name": "stp_blocked_ports",
+    "description": "STP blocked ports",
+    "unit": "count",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "lacp_members_up",
+    "description": "LACP members up",
+    "unit": "count",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "portchannel"
+    ]
+  },
+  {
+    "name": "lacp_members_down",
+    "description": "LACP members down",
+    "unit": "count",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "portchannel"
+    ]
+  },
+  {
+    "name": "lacp_imbalance_pct",
+    "description": "LACP imbalance",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "portchannel"
+    ]
+  },
+  {
+    "name": "lacp_renegotiations_total",
+    "description": "LACP renegotiations",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "portchannel"
+    ]
+  },
+  {
+    "name": "vlan_active_count",
+    "description": "VLANs ativas por trunk",
+    "unit": "count",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "trunk"
+    ]
+  },
+  {
+    "name": "vlan_allowed_mismatch_total",
+    "description": "Inconsistência de VLANs allowed",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "trunk"
+    ]
+  },
+  {
+    "name": "vlan_native_mismatch_total",
+    "description": "Inconsistência de VLAN native",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "trunk"
+    ]
+  },
+  {
+    "name": "bum_rate_pps",
+    "description": "Taxa de BUM (broadcast/multicast/unknown)",
+    "unit": "pps",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vlan",
+      "type"
+    ]
+  },
+  {
+    "name": "bum_peak_pps",
+    "description": "Pico de BUM",
+    "unit": "pps",
+    "layer": "link",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vlan",
+      "type"
+    ]
+  },
+  {
+    "name": "arp_cache_util_pct",
+    "description": "ARP cache utilization",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "arp_miss_rate",
+    "description": "ARP miss rate",
+    "unit": "count/s",
+    "layer": "link",
+    "kind": "derived",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "arp_duplicates_total",
+    "description": "ARP duplicados",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "arp_gratuitous_spikes_total",
+    "description": "Picos de gratuitous ARP",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "nd_cache_util_pct",
+    "description": "ND (IPv6) cache utilization",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "nd_miss_rate",
+    "description": "ND miss rate",
+    "unit": "count/s",
+    "layer": "link",
+    "kind": "derived",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "nd_duplicates_total",
+    "description": "ND duplicados",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "lldp_neighbors_expected_pct",
+    "description": "LLDP/CDP expected vs real",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "lldp_drift_total",
+    "description": "LLDP/CDP drift events",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "l2",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "microburst_queue_occupancy_pct_peak",
+    "description": "Microbursts: pico de fila/ocupação",
+    "unit": "%",
+    "layer": "link",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "queue"
+    ]
+  },
+  {
+    "name": "link_util_pct",
+    "description": "Link utilization",
+    "unit": "%",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "link_loss_pct",
+    "description": "Link loss",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "link_jitter_ms",
+    "description": "Link jitter",
+    "unit": "ms",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "performance",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "queue_occupancy_pct",
+    "description": "Queue occupancy",
+    "unit": "%",
+    "layer": "link",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "queue",
+      "qos_class"
+    ]
+  },
+  {
+    "name": "queue_drops",
+    "description": "Queue drops",
+    "unit": "count",
+    "layer": "link",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "queue",
+      "qos_class"
+    ]
+  },
+  {
+    "name": "ecn_marked_pct",
+    "description": "ECN marked traffic",
+    "unit": "%",
+    "layer": "link",
+    "kind": "ratio",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "qos_class"
+    ]
+  },
+  {
+    "name": "prefix_reachability_pct",
+    "description": "Reachability por prefixo",
+    "unit": "%",
+    "layer": "network",
+    "kind": "ratio",
+    "category": "l3",
+    "tags": [],
+    "dimensions": [
+      "prefix",
+      "vrf",
+      "tenant",
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "routing_convergence_ms",
+    "description": "Tempo de convergência de roteamento",
+    "unit": "ms",
+    "layer": "network",
+    "kind": "derived",
+    "category": "l3",
+    "tags": [],
+    "dimensions": [
+      "protocol",
+      "vrf"
+    ]
+  },
+  {
+    "name": "route_count",
+    "description": "Route count (total/por AFI/SAFI/VRF)",
+    "unit": "count",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "l3",
+    "tags": [],
+    "dimensions": [
+      "protocol",
+      "afi",
+      "safi",
+      "vrf"
+    ]
+  },
+  {
+    "name": "route_churn_rate",
+    "description": "Route churn rate",
+    "unit": "count/s",
+    "layer": "network",
+    "kind": "derived",
+    "category": "l3",
+    "tags": [],
+    "dimensions": [
+      "protocol",
+      "vrf"
+    ]
+  },
+  {
+    "name": "bgp_session_up",
+    "description": "BGP session up (1/0)",
+    "unit": "bool",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "peer",
+      "vrf",
+      "afi",
+      "safi"
+    ]
+  },
+  {
+    "name": "bgp_session_flaps_total",
+    "description": "BGP session flaps",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "peer",
+      "vrf"
+    ]
+  },
+  {
+    "name": "bgp_updates_total",
+    "description": "BGP updates",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "peer",
+      "vrf",
+      "afi",
+      "safi"
+    ]
+  },
+  {
+    "name": "bgp_withdraws_total",
+    "description": "BGP withdraws",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "peer",
+      "vrf",
+      "afi",
+      "safi"
+    ]
+  },
+  {
+    "name": "bgp_prefix_limit_hits_total",
+    "description": "BGP prefix limit hits",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "peer",
+      "vrf"
+    ]
+  },
+  {
+    "name": "bgp_as_path_changes_total",
+    "description": "BGP AS-path changes",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "prefix",
+      "peer",
+      "vrf"
+    ]
+  },
+  {
+    "name": "ospf_session_up",
+    "description": "OSPF adjacency up (1/0)",
+    "unit": "bool",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "neighbor",
+      "area",
+      "vrf"
+    ]
+  },
+  {
+    "name": "ospf_flaps_total",
+    "description": "OSPF adjacency flaps",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "neighbor",
+      "area",
+      "vrf"
+    ]
+  },
+  {
+    "name": "isis_session_up",
+    "description": "IS-IS adjacency up (1/0)",
+    "unit": "bool",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "neighbor",
+      "level",
+      "vrf"
+    ]
+  },
+  {
+    "name": "isis_flaps_total",
+    "description": "IS-IS adjacency flaps",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "neighbor",
+      "level",
+      "vrf"
+    ]
+  },
+  {
+    "name": "icmp_unreachable_total",
+    "description": "ICMP unreachable",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "code"
+    ]
+  },
+  {
+    "name": "icmp_frag_needed_total",
+    "description": "ICMP frag needed (PMTUD)",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "ip_fragments_total",
+    "description": "IP fragments",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "ip_fragment_drops_total",
+    "description": "Drops por MTU/fragmentação",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "dscp_packets_total",
+    "description": "Distribuição DSCP (contagem por classe)",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "qos",
+    "tags": [],
+    "dimensions": [
+      "dscp",
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "dscp_remark_events_total",
+    "description": "Eventos de remarking DSCP",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "qos",
+    "tags": [],
+    "dimensions": [
+      "from",
+      "to",
+      "policy"
+    ]
+  },
+  {
+    "name": "acl_drops_total",
+    "description": "ACL/Policy drops por regra",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "rule_id",
+      "node"
+    ]
+  },
+  {
+    "name": "tunnel_up",
+    "description": "Tunnel up/down",
+    "unit": "bool",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "overlay",
+    "tags": [],
+    "dimensions": [
+      "tunnel",
+      "type",
+      "vrf"
+    ]
+  },
+  {
+    "name": "tunnel_keepalive_loss_total",
+    "description": "Tunnel keepalive loss",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "overlay",
+    "tags": [],
+    "dimensions": [
+      "tunnel",
+      "type",
+      "vrf"
+    ]
+  },
+  {
+    "name": "tunnel_encap_errors_total",
+    "description": "Encapsulation errors",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "overlay",
+    "tags": [],
+    "dimensions": [
+      "tunnel",
+      "type"
+    ]
+  },
+  {
+    "name": "tunnel_decap_errors_total",
+    "description": "Decapsulation errors",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "overlay",
+    "tags": [],
+    "dimensions": [
+      "tunnel",
+      "type"
+    ]
+  },
+  {
+    "name": "vxlan_vni_mapping_ok",
+    "description": "VNI/VRF mapping health",
+    "unit": "bool",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "overlay",
+    "tags": [],
+    "dimensions": [
+      "vni",
+      "vrf"
+    ]
+  },
+  {
+    "name": "latency_ms",
+    "description": "Latency",
+    "unit": "ms",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "performance",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "packet_loss_pct",
+    "description": "Packet loss",
+    "unit": "%",
+    "layer": "network",
+    "kind": "ratio",
+    "category": "performance",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "jitter_ms",
+    "description": "Jitter",
+    "unit": "ms",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "performance",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "ttl_expired",
+    "description": "TTL expired events",
+    "unit": "count",
+    "layer": "network",
+    "kind": "counter",
+    "category": "errors",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "routes_count",
+    "description": "Route entries",
+    "unit": "count",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "routing",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "arp_entries",
+    "description": "ARP/ND cache entries",
+    "unit": "count",
+    "layer": "network",
+    "kind": "gauge",
+    "category": "l3",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "vrf"
+    ]
+  },
+  {
+    "name": "tcp_retrans_pct",
+    "description": "TCP retransmissions (%)",
+    "unit": "%",
+    "layer": "transport",
+    "kind": "ratio",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_retrans_total",
+    "description": "TCP retransmissions (count)",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_fast_retrans_total",
+    "description": "TCP fast retransmit",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_dup_acks_total",
+    "description": "TCP duplicate ACKs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_handshake_success_pct",
+    "description": "TCP handshake success rate",
+    "unit": "%",
+    "layer": "transport",
+    "kind": "ratio",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "dst",
+      "port"
+    ]
+  },
+  {
+    "name": "tcp_handshake_latency_ms",
+    "description": "TCP handshake latency",
+    "unit": "ms",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "dst",
+      "port"
+    ]
+  },
+  {
+    "name": "tcp_resets_total",
+    "description": "Resets (RST)",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_out_of_order_total",
+    "description": "TCP out-of-order",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_zero_window_total",
+    "description": "TCP zero window",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "tcp_window_scaling_anomalies_total",
+    "description": "TCP window scaling anomalies",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "udp_loss_pct",
+    "description": "UDP loss",
+    "unit": "%",
+    "layer": "transport",
+    "kind": "ratio",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "udp_jitter_ms",
+    "description": "UDP jitter",
+    "unit": "ms",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "nat_table_util_pct",
+    "description": "NAT table utilization",
+    "unit": "%",
+    "layer": "transport",
+    "kind": "ratio",
+    "category": "nat",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "nat_pool"
+    ]
+  },
+  {
+    "name": "nat_port_exhaustion_events_total",
+    "description": "NAT port exhaustion events",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "nat",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "nat_pool"
+    ]
+  },
+  {
+    "name": "nat_translation_failures_total",
+    "description": "NAT translation failures",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "nat",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "lb_healthcheck_success_pct",
+    "description": "Load balancer health checks success",
+    "unit": "%",
+    "layer": "transport",
+    "kind": "ratio",
+    "category": "lb",
+    "tags": [],
+    "dimensions": [
+      "lb",
+      "pool",
+      "backend"
+    ]
+  },
+  {
+    "name": "lb_connection_rate",
+    "description": "Load balancer connection rate",
+    "unit": "count/s",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "lb",
+    "tags": [],
+    "dimensions": [
+      "lb",
+      "vip"
+    ]
+  },
+  {
+    "name": "lb_concurrent_connections",
+    "description": "Load balancer concurrent connections",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "lb",
+    "tags": [],
+    "dimensions": [
+      "lb",
+      "vip"
+    ]
+  },
+  {
+    "name": "lb_backend_connect_errors_total",
+    "description": "LB backend connect errors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "lb",
+    "tags": [],
+    "dimensions": [
+      "lb",
+      "backend"
+    ]
+  },
+  {
+    "name": "lb_backend_timeouts_total",
+    "description": "LB backend timeouts",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "lb",
+    "tags": [],
+    "dimensions": [
+      "lb",
+      "backend"
+    ]
+  },
+  {
+    "name": "throughput_mbps",
+    "description": "Throughput",
+    "unit": "Mbps",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "performance",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst"
+    ]
+  },
+  {
+    "name": "tcp_rtt_ms",
+    "description": "TCP RTT",
+    "unit": "ms",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "transport",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "flow"
+    ]
+  },
+  {
+    "name": "ss_sockets_total",
+    "description": "Total sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_tcp_states",
+    "description": "TCP states from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_udp_sockets_total",
+    "description": "UDP sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_tcp_sockets_total",
+    "description": "TCP sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_raw_sockets_total",
+    "description": "RAW sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_inet_sockets_total",
+    "description": "INET sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "ss_frag_sockets_total",
+    "description": "FRAG sockets from ss -s",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_receives",
+    "description": "IP InReceives",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_hdr_errors",
+    "description": "IP InHdrErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_addr_errors",
+    "description": "IP InAddrErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_forw_datagrams",
+    "description": "IP ForwDatagrams",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_unknown_protos",
+    "description": "IP InUnknownProtos",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_discards",
+    "description": "IP InDiscards",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_in_delivers",
+    "description": "IP InDelivers",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_out_requests",
+    "description": "IP OutRequests",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_out_discards",
+    "description": "IP OutDiscards",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_out_no_routes",
+    "description": "IP OutNoRoutes",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_reasm_timeout",
+    "description": "IP ReasmTimeout",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_reasm_reqds",
+    "description": "IP ReasmReqds",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_reasm_oks",
+    "description": "IP ReasmOKs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_reasm_fails",
+    "description": "IP ReasmFails",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_frag_oks",
+    "description": "IP FragOKs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_frag_fails",
+    "description": "IP FragFails",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_frag_creates",
+    "description": "IP FragCreates",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_ip_out_transmits",
+    "description": "IP OutTransmits",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_in_msgs",
+    "description": "ICMP InMsgs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_out_msgs",
+    "description": "ICMP OutMsgs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_in_errors",
+    "description": "ICMP InErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_out_errors",
+    "description": "ICMP OutErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_in_dest_unreachs",
+    "description": "ICMP InDestUnreachs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_out_dest_unreachs",
+    "description": "ICMP OutDestUnreachs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_in_time_excds",
+    "description": "ICMP InTimeExcds",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_out_time_excds",
+    "description": "ICMP OutTimeExcds",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_in_echo_reqs",
+    "description": "ICMP InEchos",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_icmp_out_echo_reps",
+    "description": "ICMP OutEchoReps",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_active_opens",
+    "description": "TCP ActiveOpens",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_passive_opens",
+    "description": "TCP PassiveOpens",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_attempt_fails",
+    "description": "TCP AttemptFails",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_estab_resets",
+    "description": "TCP EstabResets",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_curr_estab",
+    "description": "TCP CurrEstab",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "gauge",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_in_segs",
+    "description": "TCP InSegs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_out_segs",
+    "description": "TCP OutSegs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_retrans_segs",
+    "description": "TCP RetransSegs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_in_errs",
+    "description": "TCP InErrs",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_out_rsts",
+    "description": "TCP OutRsts",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_tcp_in_csum_errors",
+    "description": "TCP InCsumErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_in_datagrams",
+    "description": "UDP InDatagrams",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_no_ports",
+    "description": "UDP NoPorts",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_in_errors",
+    "description": "UDP InErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_out_datagrams",
+    "description": "UDP OutDatagrams",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_rcvbuf_errors",
+    "description": "UDP RcvbufErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_sndbuf_errors",
+    "description": "UDP SndbufErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_in_csum_errors",
+    "description": "UDP InCsumErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_ignored_multi",
+    "description": "UDP IgnoredMulti",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "snmp_udp_mem_errors",
+    "description": "UDP MemErrors",
+    "unit": "count",
+    "layer": "transport",
+    "kind": "counter",
+    "category": "snmp",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "tls_session_resumption_pct",
+    "description": "TLS session resumption rate",
+    "unit": "%",
+    "layer": "session",
+    "kind": "ratio",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "service"
+    ]
+  },
+  {
+    "name": "tls_renegotiations_total",
+    "description": "TLS renegotiations",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "service"
+    ]
+  },
+  {
+    "name": "tls_handshake_failures_total",
+    "description": "TLS handshake failures (por SNI/cert)",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "cert"
+    ]
+  },
+  {
+    "name": "vpn_sessions_active",
+    "description": "VPN sessions active",
+    "unit": "count",
+    "layer": "session",
+    "kind": "gauge",
+    "category": "vpn",
+    "tags": [],
+    "dimensions": [
+      "profile",
+      "tenant"
+    ]
+  },
+  {
+    "name": "vpn_session_establish_rate",
+    "description": "VPN session establish rate",
+    "unit": "count/s",
+    "layer": "session",
+    "kind": "gauge",
+    "category": "vpn",
+    "tags": [],
+    "dimensions": [
+      "profile",
+      "tenant"
+    ]
+  },
+  {
+    "name": "vpn_session_failures_total",
+    "description": "VPN session failures",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "vpn",
+    "tags": [],
+    "dimensions": [
+      "profile",
+      "tenant",
+      "reason"
+    ]
+  },
+  {
+    "name": "aaa_auth_failures_total",
+    "description": "Falhas de autenticação AAA",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "aaa",
+    "tags": [],
+    "dimensions": [
+      "realm",
+      "reason"
+    ]
+  },
+  {
+    "name": "session_idle_timeouts_total",
+    "description": "Idle/timeout expirations",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "session",
+    "tags": [],
+    "dimensions": [
+      "policy",
+      "profile"
+    ]
+  },
+  {
+    "name": "fw_state_table_util_pct",
+    "description": "Firewall state table usage",
+    "unit": "%",
+    "layer": "session",
+    "kind": "ratio",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "fw_state_table_drops_total",
+    "description": "Drops por overflow de state table",
+    "unit": "count",
+    "layer": "session",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "tls_handshake_latency_ms_p95",
+    "description": "TLS handshake latency p95",
+    "unit": "ms",
+    "layer": "presentation",
+    "kind": "summary",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "service"
+    ]
+  },
+  {
+    "name": "tls_handshake_latency_ms_p99",
+    "description": "TLS handshake latency p99",
+    "unit": "ms",
+    "layer": "presentation",
+    "kind": "summary",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "service"
+    ]
+  },
+  {
+    "name": "tls_version_connections_total",
+    "description": "Distribuição de versões TLS",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "version",
+      "sni"
+    ]
+  },
+  {
+    "name": "tls_cipher_connections_total",
+    "description": "Distribuição de ciphers",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "cipher",
+      "sni"
+    ]
+  },
+  {
+    "name": "cert_expiry_days",
+    "description": "Certificados: dias até expiração",
+    "unit": "days",
+    "layer": "presentation",
+    "kind": "gauge",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "cert",
+      "sni"
+    ]
+  },
+  {
+    "name": "cert_validation_errors_total",
+    "description": "Certificados: validation errors",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "cert",
+      "sni"
+    ]
+  },
+  {
+    "name": "cert_chain_errors_total",
+    "description": "Certificados: chain errors",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "cert",
+      "sni"
+    ]
+  },
+  {
+    "name": "sni_mismatch_total",
+    "description": "SNI mismatch",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "tls",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "cert"
+    ]
+  },
+  {
+    "name": "compression_errors_total",
+    "description": "Erro de compressão (gzip/br)",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "encoding",
+    "tags": [],
+    "dimensions": [
+      "algo"
+    ]
+  },
+  {
+    "name": "encoding_errors_total",
+    "description": "Erro de encoding/codec",
+    "unit": "count",
+    "layer": "presentation",
+    "kind": "counter",
+    "category": "encoding",
+    "tags": [],
+    "dimensions": [
+      "codec"
+    ]
+  },
+  {
+    "name": "http2_negotiation_success_pct",
+    "description": "HTTP/2 negotiation success",
+    "unit": "%",
+    "layer": "presentation",
+    "kind": "ratio",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service"
+    ]
+  },
+  {
+    "name": "http3_quic_negotiation_success_pct",
+    "description": "HTTP/3 (QUIC) negotiation success",
+    "unit": "%",
+    "layer": "presentation",
+    "kind": "ratio",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service"
+    ]
+  },
+  {
+    "name": "quic_fallback_rate_pct",
+    "description": "HTTP/3 fallback rate",
+    "unit": "%",
+    "layer": "presentation",
+    "kind": "ratio",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service"
+    ]
+  },
+  {
+    "name": "app_rps",
+    "description": "Taxa de requisições (RPS/QPS)",
+    "unit": "rps",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "app",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "app_latency_ms_p95",
+    "description": "Latência p95 (app)",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "summary",
+    "category": "app",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "app_latency_ms_p99",
+    "description": "Latência p99 (app)",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "summary",
+    "category": "app",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "http_responses_total",
+    "description": "Códigos HTTP (por classe/rota)",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route",
+      "code"
+    ]
+  },
+  {
+    "name": "http_errors_total",
+    "description": "HTTP errors (4xx/5xx)",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route",
+      "code"
+    ]
+  },
+  {
+    "name": "dns_qps",
+    "description": "DNS QPS",
+    "unit": "qps",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "dns",
+    "tags": [],
+    "dimensions": [
+      "server",
+      "zone"
+    ]
+  },
+  {
+    "name": "dns_latency_ms_p95",
+    "description": "DNS latency p95",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "summary",
+    "category": "dns",
+    "tags": [],
+    "dimensions": [
+      "server",
+      "zone"
+    ]
+  },
+  {
+    "name": "dns_servfail_total",
+    "description": "DNS SERVFAIL",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "dns",
+    "tags": [],
+    "dimensions": [
+      "server",
+      "zone"
+    ]
+  },
+  {
+    "name": "dns_nxdomain_total",
+    "description": "DNS NXDOMAIN",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "dns",
+    "tags": [],
+    "dimensions": [
+      "server",
+      "zone"
+    ]
+  },
+  {
+    "name": "dns_cache_hit_ratio_pct",
+    "description": "DNS cache hit ratio",
+    "unit": "%",
+    "layer": "application",
+    "kind": "ratio",
+    "category": "dns",
+    "tags": [],
+    "dimensions": [
+      "server"
+    ]
+  },
+  {
+    "name": "dhcp_success_pct",
+    "description": "DHCP success rate (DORA)",
+    "unit": "%",
+    "layer": "application",
+    "kind": "ratio",
+    "category": "dhcp",
+    "tags": [],
+    "dimensions": [
+      "scope",
+      "server"
+    ]
+  },
+  {
+    "name": "dhcp_dora_latency_ms",
+    "description": "DHCP DORA latency",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "dhcp",
+    "tags": [],
+    "dimensions": [
+      "scope",
+      "server"
+    ]
+  },
+  {
+    "name": "dhcp_pool_util_pct",
+    "description": "DHCP pool utilization",
+    "unit": "%",
+    "layer": "application",
+    "kind": "ratio",
+    "category": "dhcp",
+    "tags": [],
+    "dimensions": [
+      "scope"
+    ]
+  },
+  {
+    "name": "dhcp_conflicts_total",
+    "description": "DHCP conflicts",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "dhcp",
+    "tags": [],
+    "dimensions": [
+      "scope"
+    ]
+  },
+  {
+    "name": "ntp_offset_ms",
+    "description": "NTP offset/drift",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "ntp",
+    "tags": [],
+    "dimensions": [
+      "server"
+    ]
+  },
+  {
+    "name": "ntp_drift_ppm",
+    "description": "NTP drift",
+    "unit": "ppm",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "ntp",
+    "tags": [],
+    "dimensions": [
+      "server"
+    ]
+  },
+  {
+    "name": "ntp_stratum_changes_total",
+    "description": "NTP stratum changes",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "ntp",
+    "tags": [],
+    "dimensions": [
+      "server"
+    ]
+  },
+  {
+    "name": "ntp_reachability_pct",
+    "description": "NTP reachability",
+    "unit": "%",
+    "layer": "application",
+    "kind": "ratio",
+    "category": "ntp",
+    "tags": [],
+    "dimensions": [
+      "server"
+    ]
+  },
+  {
+    "name": "http_ttfb_ms",
+    "description": "HTTP time-to-first-byte",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "http_ttlb_ms",
+    "description": "HTTP time-to-last-byte",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "gauge",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "http_payload_bytes_p95",
+    "description": "HTTP payload size p95",
+    "unit": "bytes",
+    "layer": "application",
+    "kind": "summary",
+    "category": "http",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "route"
+    ]
+  },
+  {
+    "name": "grpc_status_total",
+    "description": "gRPC status codes",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "grpc",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "method",
+      "status"
+    ]
+  },
+  {
+    "name": "grpc_deadlines_exceeded_total",
+    "description": "gRPC deadlines exceeded",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "grpc",
+    "tags": [],
+    "dimensions": [
+      "service",
+      "method"
+    ]
+  },
+  {
+    "name": "db_connection_errors_total",
+    "description": "Database connection errors (alto nível)",
+    "unit": "count",
+    "layer": "application",
+    "kind": "counter",
+    "category": "db",
+    "tags": [],
+    "dimensions": [
+      "db",
+      "service"
+    ]
+  },
+  {
+    "name": "db_query_latency_ms_p95",
+    "description": "Database query latency p95 (alto nível)",
+    "unit": "ms",
+    "layer": "application",
+    "kind": "summary",
+    "category": "db",
+    "tags": [],
+    "dimensions": [
+      "db",
+      "service"
+    ]
+  },
+  {
+    "name": "controller_latency_ms",
+    "description": "Controller latency",
+    "unit": "ms",
+    "layer": "control",
+    "kind": "gauge",
+    "category": "control",
+    "tags": [],
+    "dimensions": [
+      "controller",
+      "endpoint"
+    ]
+  },
+  {
+    "name": "controller_conn_ok",
+    "description": "Controller connectivity",
+    "unit": "bool",
+    "layer": "control",
+    "kind": "gauge",
+    "category": "control",
+    "tags": [],
+    "dimensions": [
+      "controller"
+    ]
+  },
+  {
+    "name": "of_channel_reconnects",
+    "description": "OpenFlow reconnects",
+    "unit": "count",
+    "layer": "control",
+    "kind": "counter",
+    "category": "control",
+    "tags": [],
+    "dimensions": [
+      "switch"
+    ]
+  },
+  {
+    "name": "flows_installed",
+    "description": "Flows installed",
+    "unit": "count",
+    "layer": "control",
+    "kind": "counter",
+    "category": "control",
+    "tags": [],
+    "dimensions": [
+      "controller",
+      "switch"
+    ]
+  },
+  {
+    "name": "flows_removed",
+    "description": "Flows removed",
+    "unit": "count",
+    "layer": "control",
+    "kind": "counter",
+    "category": "control",
+    "tags": [],
+    "dimensions": [
+      "controller",
+      "switch"
+    ]
+  },
+  {
+    "name": "cpu_util_pct",
+    "description": "CPU utilization",
+    "unit": "%",
+    "layer": "control",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "mem_util_pct",
+    "description": "Memory utilization",
+    "unit": "%",
+    "layer": "control",
+    "kind": "gauge",
+    "category": "host",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "openflow_flow_packets",
+    "description": "Flow packets",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "table",
+      "flow"
+    ]
+  },
+  {
+    "name": "openflow_flow_bytes",
+    "description": "Flow bytes",
+    "unit": "bytes",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "table",
+      "flow"
+    ]
+  },
+  {
+    "name": "table_hits",
+    "description": "Table hits",
+    "unit": "count",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "table"
+    ]
+  },
+  {
+    "name": "table_misses",
+    "description": "Table misses",
+    "unit": "count",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "table"
+    ]
+  },
+  {
+    "name": "port_rx_pkts",
+    "description": "Port RX packets",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "port"
+    ]
+  },
+  {
+    "name": "port_tx_pkts",
+    "description": "Port TX packets",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "port"
+    ]
+  },
+  {
+    "name": "port_rx_drops",
+    "description": "Port RX drops",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "port"
+    ]
+  },
+  {
+    "name": "port_tx_drops",
+    "description": "Port TX drops",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "switch",
+      "port"
+    ]
+  },
+  {
+    "name": "flow_bytes",
+    "description": "Flow byte counter",
+    "unit": "bytes",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "5tuple"
+    ]
+  },
+  {
+    "name": "flow_packets",
+    "description": "Flow packet counter",
+    "unit": "packets",
+    "layer": "dataplane",
+    "kind": "counter",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "5tuple"
+    ]
+  },
+  {
+    "name": "flow_duration_sec",
+    "description": "Flow duration",
+    "unit": "s",
+    "layer": "dataplane",
+    "kind": "gauge",
+    "category": "dataplane",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "5tuple"
+    ]
+  },
+  {
+    "name": "interface_util_p95_pct",
+    "description": "Interface utilization p95",
+    "unit": "%",
+    "layer": "service",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "interface_headroom_pct",
+    "description": "Interface headroom",
+    "unit": "%",
+    "layer": "service",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "queue_depth",
+    "description": "Queue depth",
+    "unit": "count",
+    "layer": "service",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "queue",
+      "qos_class"
+    ]
+  },
+  {
+    "name": "buffer_occupancy_pct",
+    "description": "Buffer occupancy",
+    "unit": "%",
+    "layer": "service",
+    "kind": "gauge",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "asic"
+    ]
+  },
+  {
+    "name": "ecn_marks_total",
+    "description": "ECN marks",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "qos_class"
+    ]
+  },
+  {
+    "name": "elephant_flows_total",
+    "description": "Elephant flows (classificação)",
+    "unit": "count",
+    "layer": "service",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "app"
+    ]
+  },
+  {
+    "name": "mice_flows_total",
+    "description": "Mice flows (classificação)",
+    "unit": "count",
+    "layer": "service",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "app"
+    ]
+  },
+  {
+    "name": "hotspot_score",
+    "description": "Hotspot score (links/ASICs com maior utilização/drops)",
+    "unit": null,
+    "layer": "service",
+    "kind": "derived",
+    "category": "capacity",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface",
+      "asic"
+    ]
+  },
+  {
+    "name": "slo_error_budget_remaining_pct",
+    "description": "Error budget restante do SLO",
+    "unit": "%",
+    "layer": "service",
+    "kind": "derived",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "slo",
+      "service"
+    ]
+  },
+  {
+    "name": "incident_rate",
+    "description": "Taxa de incidentes",
+    "unit": "count/s",
+    "layer": "service",
+    "kind": "derived",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "service"
+    ]
+  },
+  {
+    "name": "flap_storm_events_total",
+    "description": "Flap storms",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "config_drift_score",
+    "description": "Config drift vs golden config",
+    "unit": null,
+    "layer": "service",
+    "kind": "derived",
+    "category": "reliability",
+    "tags": [],
+    "dimensions": [
+      "node"
+    ]
+  },
+  {
+    "name": "firewall_denies_total",
+    "description": "Firewall/IDS denies por policy",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "policy",
+      "rule_id",
+      "node"
+    ]
+  },
+  {
+    "name": "scan_spikes_total",
+    "description": "Picos de scans",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "src",
+      "dst",
+      "port"
+    ]
+  },
+  {
+    "name": "ddos_syn_rate_pps",
+    "description": "DDoS signal: SYN rate",
+    "unit": "pps",
+    "layer": "service",
+    "kind": "gauge",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "ddos_udp_flood_pps",
+    "description": "DDoS signal: UDP flood indicators",
+    "unit": "pps",
+    "layer": "service",
+    "kind": "gauge",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "dst",
+      "service"
+    ]
+  },
+  {
+    "name": "abnormal_pps",
+    "description": "PPS anormal",
+    "unit": "pps",
+    "layer": "service",
+    "kind": "derived",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "node",
+      "interface"
+    ]
+  },
+  {
+    "name": "anomaly_new_asns_total",
+    "description": "Anomalias: novos ASNs",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "asn",
+      "prefix"
+    ]
+  },
+  {
+    "name": "anomaly_new_countries_total",
+    "description": "Anomalias: novos países",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "country",
+      "service"
+    ]
+  },
+  {
+    "name": "anomaly_new_services_total",
+    "description": "Anomalias: novos serviços",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "service"
+    ]
+  },
+  {
+    "name": "anomaly_new_ports_total",
+    "description": "Anomalias: novas portas",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "port",
+      "proto"
+    ]
+  },
+  {
+    "name": "auth_failures_total",
+    "description": "Falhas AAA/VPN (agregado)",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "realm",
+      "profile"
+    ]
+  },
+  {
+    "name": "cert_errors_total",
+    "description": "Cert errors (agregado)",
+    "unit": "count",
+    "layer": "service",
+    "kind": "counter",
+    "category": "security",
+    "tags": [],
+    "dimensions": [
+      "sni",
+      "cert"
+    ]
+  }
+]
