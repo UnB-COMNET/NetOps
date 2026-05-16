@@ -1,4 +1,4 @@
-# profissa-sdn-framework (produção mínima)
+# Net Ops Studio (produção mínima)
 
 Conjunto mínimo para rodar a plataforma (backend FastAPI + UI estática) e o módulo `gr-netmon` do GNU Radio. O foco é manter apenas o essencial para execução em produção.
 
