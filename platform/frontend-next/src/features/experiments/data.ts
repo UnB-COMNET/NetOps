@@ -8,6 +8,7 @@ export type ManualExperimentConfig = {
     scientificDescription: string;
     durationS: number;
     samplingMs: number;
+    repeatCount?: number; // Número de vezes para repetir o experimento
   };
   traffic: {
     srcHostId: string;

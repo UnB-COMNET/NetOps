@@ -22,7 +22,7 @@ import {
   type MetricType,
 } from "@/lib/metricsCatalog";
 import { cn } from "@/lib/cn";
-import { metricsApi, topologyApi, type MetricSample, type Topology } from "@/lib/api";
+import { API_BASE, metricsApi, topologyApi, type MetricSample, type Topology } from "@/lib/api";
 
 // Classifica um node real do backend no EntityKind correspondente
 function classifyNode(node: string): EntityKind | null {
@@ -271,6 +271,25 @@ export default function DashboardPage() {
   const [topologyId, setTopologyId] = useState<string>("all");
 
   const [timeFilter, setTimeFilter] = useState<null | { runId: string; from: string; to: string; samplingMs?: number }>(null);
+  
+  const [useRealData, setUseRealData] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Buscar configuração do sistema para saber se está em modo real
+    fetch(`${API_BASE}/system/settings`)
+      .then(r => r.json())
+      .then(data => setUseRealData(data?.use_real_data ?? false))
+      .catch(() => setUseRealData(null));
+    
+    const interval = setInterval(() => {
+      fetch(`${API_BASE}/system/settings`)
+        .then(r => r.json())
+        .then(data => setUseRealData(data?.use_real_data ?? false))
+        .catch(() => {});
+    }, 10000); // Atualiza a cada 10s
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     try {
@@ -533,15 +552,26 @@ export default function DashboardPage() {
             )}
             <span className="font-mono">{visibleSpecs.length}</span> métricas
             {backendOnline === true && (
-              <span className="ml-2 inline-flex items-center gap-1 font-mono text-accent-ok">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-ok" />
-                live ({liveMetrics.length})
-              </span>
+              <>
+                <span className="ml-2 inline-flex items-center gap-1 font-mono text-accent-ok">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent-ok" />
+                  online ({liveMetrics.length})
+                </span>
+                {useRealData !== null && (
+                  <span className={`ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                    useRealData 
+                      ? "bg-red-500/20 text-red-400" 
+                      : "bg-green-500/20 text-green-400"
+                  }`}>
+                    {useRealData ? "🔴 MODO REAL" : "🟢 MODO SINTÉTICO"}
+                  </span>
+                )}
+              </>
             )}
             {backendOnline === false && (
               <span className="ml-2 inline-flex items-center gap-1 font-mono text-fg-1 opacity-60">
                 <span className="h-1.5 w-1.5 rounded-full bg-fg-1" />
-                simulado
+                offline
               </span>
             )}
           </div>

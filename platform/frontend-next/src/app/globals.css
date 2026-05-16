@@ -25,6 +25,22 @@ body {
 body {
   background: rgb(var(--bg-0));
   color: rgb(var(--fg-0));
+  /* Previne seleção acidental de texto da UI */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+/* Permite seleção em elementos específicos */
+input,
+textarea,
+[contenteditable="true"],
+code,
+pre,
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
 }
 
 * {

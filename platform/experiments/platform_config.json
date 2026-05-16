@@ -18,7 +18,7 @@
     {
       "id": "c1",
       "role": "controller",
-      "mgmt_ip": "172.20.0.10",
+      "mgmt_ip": "172.18.0.2",
       "image": "alexandremitsurukaihara/lst2.0:ryucontroller",
       "container_name": "c1",
       "meta": { "ssh_user": "root", "ssh_port": 22 }
@@ -27,18 +27,18 @@
       "id": "s1",
       "role": "switch",
       "type": "ovs",
-      "mgmt_ip": "172.20.0.11",
+      "mgmt_ip": "172.17.0.2",
       "image": "s1-img",
       "container_name": "s1",
       "bridge": "br-s1",
       "datapath_id": "0000000000000001",
-      "ofctl": { "host": "172.20.0.11", "port": 6640 },
+      "ofctl": { "host": "172.17.0.2", "port": 6640 },
       "meta": {}
     },
     {
       "id": "h1",
       "role": "host",
-      "mgmt_ip": "172.20.0.12",
+      "mgmt_ip": "172.18.0.3",
       "image": "alexandremitsurukaihara/lst2.0:host",
       "container_name": "h1",
       "meta": { "ssh_user": "root", "ssh_port": 22 }
@@ -46,7 +46,7 @@
     {
       "id": "h2",
       "role": "host",
-      "mgmt_ip": "172.20.0.13",
+      "mgmt_ip": "172.18.0.4",
       "image": "alexandremitsurukaihara/lst2.0:host",
       "container_name": "h2",
       "meta": { "ssh_user": "root", "ssh_port": 22 }

@@ -14,7 +14,7 @@ import "reactflow/dist/style.css";
 import { nodeTypes } from "@/features/topology/nodeTypes";
 import { edgeTypes, type LinkStatus } from "@/features/topology/edgeTypes";
 import { cn } from "@/lib/cn";
-import { topologyApi, metricsApi, type MetricSample } from "@/lib/api";
+import { topologyApi, metricsApi, type MetricSample, API_BASE } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Activity, RefreshCw, X } from "lucide-react";
 
@@ -125,11 +125,35 @@ function TopologyViewInner() {
   const [topoName, setTopoName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  // Track backend data-mode to force a refresh when it changes
+  const [dataModeReal, setDataModeReal] = useState<boolean | null>(null);
+  const dataModeRef = useRef<boolean | null>(null);
 
   const [selected, setSelected] = useState<SelectedElement>(null);
   const [nodeMetrics, setNodeMetrics] = useState<Map<string, Map<string, number>>>(new Map());
   const nodeMetricsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rfRef = useRef<ReactFlowInstance | null>(null);
+
+  // ── Poll system settings to detect mode changes ────────────────────────
+  useEffect(() => {
+    const checkMode = () => {
+      fetch(`${API_BASE}/system/settings`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: { use_real_data: boolean }) => {
+          const newMode = d.use_real_data;
+          if (dataModeRef.current !== null && dataModeRef.current !== newMode) {
+            // Mode changed — clear node metrics display and reload topology
+            setNodeMetrics(new Map());
+            setDataModeReal(newMode);
+          }
+          dataModeRef.current = newMode;
+        })
+        .catch(() => {});
+    };
+    checkMode();
+    const t = setInterval(checkMode, 10_000); // mode changes are rare; 10s is sufficient
+    return () => clearInterval(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Center view whenever nodes are first loaded ────────────────────────
   const didFitRef = useRef(false);
@@ -177,7 +201,8 @@ function TopologyViewInner() {
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadTopology(); }, [loadTopology]);
+  // Load on mount, and whenever data mode changes
+  useEffect(() => { loadTopology(); }, [loadTopology, dataModeReal]);
 
   // ── Poll global metrics every 5s (updates canvas nodes + edges) ────────
   useEffect(() => {

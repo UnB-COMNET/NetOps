@@ -8,7 +8,7 @@ import random
 import time
 import re
 import subprocess
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
@@ -117,8 +117,8 @@ app.add_middleware(
     max_age=600,
 )
 
-# Rate limiting: simple in-memory tracker (use Redis em produção)
-_rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+# Rate limiting: per-IP deque for O(1) amortised window eviction
+_rate_limit_store: Dict[str, deque] = defaultdict(deque)
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
 
@@ -126,23 +126,20 @@ RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
 async def rate_limit_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
-    
-    # Limpar timestamps antigos
-    _rate_limit_store[client_ip] = [
-        ts for ts in _rate_limit_store[client_ip]
-        if now - ts < RATE_LIMIT_WINDOW
-    ]
-    
-    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
+    bucket = _rate_limit_store[client_ip]
+    # Evict expired timestamps from the left in O(1) amortised
+    while bucket and now - bucket[0] >= RATE_LIMIT_WINDOW:
+        bucket.popleft()
+    if len(bucket) >= RATE_LIMIT_REQUESTS:
         logger.warning(f"Rate limit exceeded for {client_ip}")
         return Response(
             content=json.dumps({"detail": "Too many requests"}),
             status_code=429,
             media_type="application/json"
         )
-    
-    _rate_limit_store[client_ip].append(now)
+    bucket.append(now)
     return await call_next(request)
+
 
 
 def _generate_id(prefix: str) -> str:
@@ -168,10 +165,14 @@ def _serialize_sample(sample: MetricSample) -> str:
 
 
 def _write_samples_to_raw(samples: Sequence[MetricSample]) -> None:
+    """Batch writes grouped by layer: opens each file exactly once per call."""
+    by_layer: Dict[str, List[str]] = defaultdict(list)
     for sample in samples:
-        path = _raw_file_for_layer(sample.layer)
+        by_layer[str(sample.layer)].append(_serialize_sample(sample))
+    for layer_key, lines in by_layer.items():
+        path = _raw_file_for_layer(layer_key)  # type: ignore[arg-type]
         with path.open("a", encoding="utf-8") as f:
-            f.write(_serialize_sample(sample) + "\n")
+            f.write("\n".join(lines) + "\n")
 
 
 def _atomic_write_text(path: Path, content: str) -> None:
@@ -426,30 +427,33 @@ def _append_run_log(run_id: str, message: str) -> None:
 
 
 def _store_samples(samples: Sequence[MetricSample]) -> None:
-    normalized = [_normalize_sample(sample) for sample in samples]
-    metric_samples.extend(normalized)
-    _write_samples_to_raw(normalized)
-    for sample in normalized:
-        try:
-            seen_metric_names.add(str(sample.metric))
-        except Exception:
-            pass
+    normalized = [_normalize_sample(s) for s in samples]
     touched_run_ids: set[str] = set()
-    for sample in normalized:
-        run_id = sample.labels.get("run_id") if sample.labels else None
+    for s in normalized:
+        # Update O(1) latest index
+        key = f"{s.metric}:{s.node}:{s.layer}"
+        cur = _samples_latest.get(key)
+        if cur is None or s.timestamp >= cur.timestamp:
+            _samples_latest[key] = s
+        # Append to bounded history ring-buffer
+        metric_samples.append(s)
+        seen_metric_names.add(str(s.metric))
+        # Accumulate run-linked records
+        run_id = s.labels.get("run_id") if s.labels else None
         if run_id:
             touched_run_ids.add(str(run_id))
-            record = MetricRecord(
-                timestamp=sample.timestamp,
-                metric_name=sample.metric,
-                value=sample.value,
-                layer=sample.layer,
-                labels=sample.labels,
-                details=sample.details,
+            run_metrics.setdefault(str(run_id), []).append(
+                MetricRecord(
+                    timestamp=s.timestamp,
+                    metric_name=s.metric,
+                    value=s.value,
+                    layer=s.layer,
+                    labels=s.labels,
+                    details=s.details,
+                )
             )
-            run_metrics.setdefault(run_id, []).append(record)
-            _append_run_log(run_id, f"metric:{sample.metric}")
-
+            _append_run_log(str(run_id), f"metric:{s.metric}")
+    _write_samples_to_raw(normalized)
     for run_id in touched_run_ids:
         try:
             _persist_run_metrics(run_id)
@@ -463,6 +467,59 @@ def _run_cmd(cmd: List[str], timeout: int = 6) -> str:
         return res.stdout
     except (subprocess.SubprocessError, OSError):
         return ""
+
+
+# Previous interface byte counters for delta-based utilization (node:iface -> (rx_bytes, tx_bytes, timestamp))
+_prev_net_stats: Dict[str, tuple[float, float, float]] = {}
+
+
+def _parse_docker_stats(container: str) -> Dict[str, float]:
+    """Fetch stats for one container (called individually when needed)."""
+    return _parse_docker_stats_batch([container]).get(container, {})
+
+
+def _parse_docker_stats_batch(containers: List[str]) -> Dict[str, Dict[str, float]]:
+    """Single 'docker stats --no-stream' call for all containers → O(1) Docker API round-trip."""
+    if not containers:
+        return {}
+    out = _run_cmd(
+        [
+            "docker", "stats", "--no-stream",
+            "--format",
+            '{"name":"{{.Name}}","cpu":"{{.CPUPerc}}","mem":"{{.MemPerc}}"}',
+        ] + containers,
+        timeout=15,
+    )
+    results: Dict[str, Dict[str, float]] = {}
+    for line in out.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            data = json.loads(line)
+        except Exception:
+            continue
+        name = str(data.get("name") or "").strip()
+        def _pct(s: Any) -> float | None:
+            try:
+                return float(str(s or "").strip().rstrip("%"))
+            except ValueError:
+                return None
+        entry: Dict[str, float] = {}
+        cpu = _pct(data.get("cpu"))
+        mem = _pct(data.get("mem"))
+        if cpu is not None:
+            entry["cpu_pct"] = cpu
+        if mem is not None:
+            entry["mem_pct"] = mem
+        if name:
+            results[name] = entry
+            # Also index by original requested name (may differ from docker Name)
+            for req in containers:
+                if req == name or name.lstrip("/") == req.lstrip("/"):
+                    results[req] = entry
+    return results
+
 
 
 def _parse_ss_summary(output: str) -> Dict[str, float]:
@@ -526,28 +583,56 @@ def _parse_snmp(output: str) -> Dict[str, float]:
 
 
 def _parse_ip_link(output: str) -> Dict[str, Dict[str, float]]:
-    # Returns iface -> metrics
+    """Parse 'ip -s link' output → {iface: {rx_bytes, tx_bytes, rx_packets, tx_packets, errors, dropped}}"""
     metrics: Dict[str, Dict[str, float]] = {}
-    current = None
+    current: str | None = None
+    rx_next = False
+    tx_next = False
     for line in output.splitlines():
-        if re.match(r"^\d+: ", line):
-            current = line.split(":", 1)[1].strip().split()[0]
+        m_iface = re.match(r"^\d+: (\S+?)[@: ]", line)
+        if m_iface:
+            current = m_iface.group(1).rstrip("@")
             metrics.setdefault(current, {})
-        if current and "RX:" in line:
+            rx_next = tx_next = False
             continue
-        if current and "TX:" in line:
+        if current is None:
             continue
-        if current and "errors" in line and "dropped" in line:
-            parts = line.split()
+        stripped = line.strip()
+        if stripped.startswith("RX:"):
+            rx_next = True
+            tx_next = False
+            continue
+        if stripped.startswith("TX:"):
+            tx_next = True
+            rx_next = False
+            continue
+        if rx_next or tx_next:
+            parts = stripped.split()
+            prefix = "rx" if rx_next else "tx"
+            if len(parts) >= 4:
+                try:
+                    metrics[current][f"{prefix}_bytes"]   = float(parts[0])
+                    metrics[current][f"{prefix}_packets"] = float(parts[1])
+                    metrics[current][f"{prefix}_errors"]  = float(parts[2])
+                    metrics[current][f"{prefix}_dropped"] = float(parts[3])
+                except (ValueError, IndexError):
+                    pass
+            rx_next = tx_next = False
+            continue
+        # Legacy: lines with 'errors X dropped X' (some kernel versions)
+        if current and "errors" in stripped and "dropped" in stripped:
+            parts = stripped.split()
             try:
-                errors = float(parts[1])
-                dropped = float(parts[3])
-                metrics[current].setdefault("errors", 0.0)
-                metrics[current].setdefault("dropped", 0.0)
-                metrics[current]["errors"] += errors
-                metrics[current]["dropped"] += dropped
-            except (IndexError, ValueError):
-                continue
+                idx_e = parts.index("errors")
+                idx_d = parts.index("dropped")
+                metrics[current].setdefault("errors",  float(parts[idx_e - 1]))
+                metrics[current].setdefault("dropped", float(parts[idx_d - 1]))
+            except (ValueError, IndexError):
+                pass
+    # Backward-compatible aliases
+    for iface, vals in metrics.items():
+        vals.setdefault("errors",  vals.get("tx_errors",  0.0))
+        vals.setdefault("dropped", vals.get("tx_dropped", 0.0))
     return metrics
 
 
@@ -555,6 +640,7 @@ def _collect_real(topology: Topology | None, labels: Dict[str, Any] | None = Non
     if not topology:
         return []
     now = datetime.utcnow()
+    now_ts = time.time()
     base_labels = _normalize_labels(labels)
     samples: List[MetricSample] = []
 
@@ -569,97 +655,218 @@ def _collect_real(topology: Topology | None, labels: Dict[str, Any] | None = Non
             labels=_normalize_labels(labels or base_labels),
         )
 
+    # ── Single docker stats call for ALL containers (1 Docker API round-trip) ──
+    container_names = [node.meta.get("container_name") or node.id for node in topology.nodes]
+    all_dstats = _parse_docker_stats_batch(container_names)
+
     for node in topology.nodes:
-        container = node.meta.get("container_name") or node.id
-        # Transport: ss -s and /proc/net/snmp
-        if layer_flags.get("transport", True):
-            ss_output = _run_cmd(["docker", "exec", container, "ss", "-s"]) if container else ""
-            ss_data = _parse_ss_summary(ss_output) if ss_output else {}
-            if ss_data:
-                samples.append(_mk("ss_sockets_total", "transport", node.id, ss_data.get("total", 0.0), {"source": "ss -s"}))
-                samples.append(
-                    _mk(
-                        "ss_tcp_states",
-                        "transport",
-                        node.id,
-                        ss_data.get("tcp_total", 0.0),
-                        {
-                            "estab": ss_data.get("tcp_estab", 0.0),
-                            "closed": ss_data.get("tcp_closed", 0.0),
-                            "orphaned": ss_data.get("tcp_orphaned", 0.0),
-                            "timewait": ss_data.get("tcp_timewait", 0.0),
-                            "source": "ss -s",
-                        },
-                    )
-                )
-                for proto in ["udp", "tcp", "raw", "inet", "frag"]:
+        try:
+            container = node.meta.get("container_name") or node.id
+
+            # ── Docker stats: CPU & memory for ALL node types ────────────────
+            dstats = all_dstats.get(container, {})
+            cpu_pct = dstats.get("cpu_pct")
+            mem_pct = dstats.get("mem_pct")
+            if cpu_pct is not None:
+                samples.append(_mk("docker_cpu_util_pct", "control", node.id, round(cpu_pct, 3), {"container": container}))
+                samples.append(_mk("cpu_util_pct",        "control", node.id, round(cpu_pct, 3), {"container": container}))
+            if mem_pct is not None:
+                samples.append(_mk("docker_mem_util_pct", "control", node.id, round(mem_pct, 3), {"container": container}))
+                samples.append(_mk("mem_util_pct",        "control", node.id, round(mem_pct, 3), {"container": container}))
+
+            # ── Controller-specific metrics ──────────────────────────────────
+            if node.type == "controller":
+                # Try REST API ping on common controller ports (RYU=8080, ONOS=8181, Floodlight=8080)
+                ctrl_latency_ms: float | None = None
+                ctrl_ok = False
+                for port in [8080, 8181, 6633]:
+                    t0 = time.time()
+                    out = _run_cmd(["docker", "exec", container, "curl", "-s", "-o", "/dev/null",
+                                    "-w", "%{http_code}", "--max-time", "2",
+                                    f"http://127.0.0.1:{port}/"], timeout=4)
+                    elapsed = (time.time() - t0) * 1000
+                    if out.strip() in {"200", "401", "404"}:
+                        ctrl_ok = True
+                        ctrl_latency_ms = round(elapsed, 2)
+                        break
+                # Fallback: check if process is alive via docker stats success
+                if not ctrl_ok and cpu_pct is not None:
+                    ctrl_ok = True
+                samples.append(_mk("controller_conn_ok",    "control", node.id, 1.0 if ctrl_ok else 0.0, {"source": "curl"}))
+                if ctrl_latency_ms is not None:
+                    samples.append(_mk("controller_latency_ms", "control", node.id, ctrl_latency_ms, {"source": "curl"}))
+
+            # ── Transport: ss -s and /proc/net/snmp ──────────────────────────
+            if layer_flags.get("transport", True):
+                ss_output = _run_cmd(["docker", "exec", container, "ss", "-s"]) if container else ""
+                ss_data = _parse_ss_summary(ss_output) if ss_output else {}
+                if ss_data:
+                    samples.append(_mk("ss_sockets_total", "transport", node.id, ss_data.get("total", 0.0), {"source": "ss -s"}))
                     samples.append(
                         _mk(
-                            f"ss_{proto}_sockets_total",
+                            "ss_tcp_states",
                             "transport",
                             node.id,
-                            ss_data.get(f"{proto}_total", 0.0),
+                            ss_data.get("tcp_total", 0.0),
                             {
-                                "ip": ss_data.get(f"{proto}_ip", 0.0),
-                                "ipv6": ss_data.get(f"{proto}_ipv6", 0.0),
+                                "estab": ss_data.get("tcp_estab", 0.0),
+                                "closed": ss_data.get("tcp_closed", 0.0),
+                                "orphaned": ss_data.get("tcp_orphaned", 0.0),
+                                "timewait": ss_data.get("tcp_timewait", 0.0),
                                 "source": "ss -s",
                             },
                         )
                     )
+                    for proto in ["udp", "tcp", "raw", "inet", "frag"]:
+                        samples.append(
+                            _mk(
+                                f"ss_{proto}_sockets_total",
+                                "transport",
+                                node.id,
+                                ss_data.get(f"{proto}_total", 0.0),
+                                {
+                                    "ip": ss_data.get(f"{proto}_ip", 0.0),
+                                    "ipv6": ss_data.get(f"{proto}_ipv6", 0.0),
+                                    "source": "ss -s",
+                                },
+                            )
+                        )
 
-            snmp_output = _run_cmd(["docker", "exec", container, "cat", "/proc/net/snmp"]) if container else ""
-            snmp_data = _parse_snmp(snmp_output) if snmp_output else {}
-            for key, val in snmp_data.items():
-                samples.append(_mk(f"snmp_{key}", "transport", node.id, float(val), {"source": "/proc/net/snmp"}))
+                snmp_output = _run_cmd(["docker", "exec", container, "cat", "/proc/net/snmp"]) if container else ""
+                snmp_data = _parse_snmp(snmp_output) if snmp_output else {}
+                for key, val in snmp_data.items():
+                    samples.append(_mk(f"snmp_{key}", "transport", node.id, float(val), {"source": "/proc/net/snmp"}))
 
-        # Link/Physical: ip -s link
-        if layer_flags.get("link", True) or layer_flags.get("physical", True):
-            ip_link_output = _run_cmd(["docker", "exec", container, "ip", "-s", "link"]) if container else ""
-            ip_link_stats = _parse_ip_link(ip_link_output) if ip_link_output else {}
-            for iface, vals in ip_link_stats.items():
-                path = f"{node.id}:{iface}"
-                if layer_flags.get("physical", True):
-                    samples.append(_mk("if_errors", "physical", path, vals.get("errors", 0.0), {"source": "ip -s link"}))
-                    samples.append(_mk("if_discards", "physical", path, vals.get("dropped", 0.0), {"source": "ip -s link"}))
-                if layer_flags.get("link", True):
-                    samples.append(_mk("queue_drops", "link", path, vals.get("dropped", 0.0), {"source": "ip -s link"}))
+            # ── Link/Physical: ip -s link ────────────────────────────────────
+            if layer_flags.get("link", True) or layer_flags.get("physical", True):
+                ip_link_output = _run_cmd(["docker", "exec", container, "ip", "-s", "link"]) if container else ""
+                ip_link_stats = _parse_ip_link(ip_link_output) if ip_link_output else {}
 
-        # Network: basic ping between hosts (h1->h2, h2->h1 when mgmt_ip available)
-        if layer_flags.get("network", True) and node.type == "host":
-            peers = [n for n in topology.nodes if n.type == "host" and n.id != node.id and n.mgmt_ip]
-            if peers:
-                target = peers[0]
-                ping_cmd = ["docker", "exec", container, "ping", "-c", "3", "-i", "0.2", target.mgmt_ip]
-                ping_output = _run_cmd(ping_cmd)
-                m = re.search(r"(\d+)% packet loss", ping_output)
-                loss = float(m.group(1)) if m else 0.0
-                rtt_match = re.search(r"rtt min/avg/max/mdev = ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+)", ping_output)
-                if rtt_match:
-                    latency = float(rtt_match.group(2))
-                    jitter = float(rtt_match.group(4))
-                else:
-                    latency = 0.0
-                    jitter = 0.0
-                samples.append(_mk("latency_ms", "network", node.id, latency, {"dst": target.id, "source": "ping"}))
-                samples.append(_mk("packet_loss_pct", "network", node.id, loss, {"dst": target.id, "source": "ping"}))
-                samples.append(_mk("jitter_ms", "network", node.id, jitter, {"dst": target.id, "source": "ping"}))
+                # Also grab ip link show (no -s) to detect UP/DOWN state
+                ip_link_state = _run_cmd(["docker", "exec", container, "ip", "link", "show"]) if container else ""
+                iface_up: Dict[str, bool] = {}
+                for m_st in re.finditer(r"\d+: (\S+?)[@: ].+?state (\S+)", ip_link_state):
+                    iface_up[m_st.group(1).rstrip("@")] = m_st.group(2).upper() == "UP"
 
-        # Control/Dataplane (best-effort with ovs-ofctl on switches)
-        if node.type == "switch" and layer_flags.get("control", True):
-            ofctl_ports = _run_cmd(["docker", "exec", container, "ovs-ofctl", "dump-ports", "br-s1"]) if container else ""
-            if ofctl_ports:
-                samples.append(_mk("controller_conn_ok", "control", node.id, 1.0, {"source": "ovs-ofctl"}))
-        if node.type == "switch" and layer_flags.get("dataplane", True):
-            flows_dump = _run_cmd(["docker", "exec", container, "ovs-ofctl", "dump-flows", "br-s1"]) if container else ""
-            if flows_dump:
-                lines = [ln for ln in flows_dump.splitlines() if "n_packets" in ln]
-                for idx, ln in enumerate(lines[:10]):
-                    m_pkts = re.search(r"n_packets=(\d+)", ln)
-                    m_bytes = re.search(r"n_bytes=(\d+)", ln)
-                    pkts = float(m_pkts.group(1)) if m_pkts else 0.0
-                    byt = float(m_bytes.group(1)) if m_bytes else 0.0
-                    samples.append(_mk("openflow_flow_packets", "dataplane", node.id, pkts, {"flow_id": f"flow_{idx}", "source": "ovs-ofctl"}))
-                    samples.append(_mk("openflow_flow_bytes", "dataplane", node.id, byt, {"flow_id": f"flow_{idx}", "source": "ovs-ofctl"}))
+                for iface, vals in ip_link_stats.items():
+                    if iface in {"lo"}:
+                        continue
+                    path = f"{node.id}:{iface}"
+                    if layer_flags.get("physical", True):
+                        samples.append(_mk("if_errors",   "physical", path, vals.get("errors",  0.0), {"source": "ip -s link"}))
+                        samples.append(_mk("if_discards", "physical", path, vals.get("dropped", 0.0), {"source": "ip -s link"}))
+
+                    if layer_flags.get("link", True):
+                        samples.append(_mk("queue_drops", "link", path, vals.get("dropped", 0.0), {"source": "ip -s link"}))
+                        up_val = float(iface_up.get(iface, True))
+                        samples.append(_mk("if_link_up", "link", path, up_val, {"source": "ip link show"}))
+
+                        # Delta-based utilization: compare with previous reading
+                        prev_key = f"{node.id}:{iface}"
+                        rx_bytes = vals.get("rx_bytes", 0.0)
+                        tx_bytes = vals.get("tx_bytes", 0.0)
+                        prev = _prev_net_stats.get(prev_key)
+                        if prev is not None:
+                            prev_rx, prev_tx, prev_ts = prev
+                            dt = now_ts - prev_ts
+                            if dt > 0:
+                                rx_bps = (rx_bytes - prev_rx) / dt
+                                tx_bps = (tx_bytes - prev_tx) / dt
+                                capacity_bps = 1_000_000_000.0  # assume 1 Gbps
+                                util = round(max(rx_bps, tx_bps) / capacity_bps * 100.0, 3)
+                                util = max(0.0, min(100.0, util))
+                                samples.append(_mk("if_in_util_pct",  "link", path, round(rx_bps / capacity_bps * 100.0, 3), {"source": "ip -s link delta"}))
+                                samples.append(_mk("if_out_util_pct", "link", path, round(tx_bps / capacity_bps * 100.0, 3), {"source": "ip -s link delta"}))
+                                # Emit per-link util using source->target key as well
+                                samples.append(_mk("link_util_pct", "link", path, util, {"source": "ip -s link delta"}))
+                        _prev_net_stats[prev_key] = (rx_bytes, tx_bytes, now_ts)
+
+            # ── Network: ping between hosts ──────────────────────────────────
+            if layer_flags.get("network", True) and node.type == "host":
+                peers = [n for n in topology.nodes if n.type == "host" and n.id != node.id and n.mgmt_ip]
+                if peers:
+                    target = peers[0]
+                    ping_cmd = ["docker", "exec", container, "ping", "-c", "3", "-i", "0.2", target.mgmt_ip]
+                    ping_output = _run_cmd(ping_cmd)
+                    m = re.search(r"(\d+)% packet loss", ping_output)
+                    loss = float(m.group(1)) if m else 0.0
+                    rtt_match = re.search(r"rtt min/avg/max/mdev = ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+)", ping_output)
+                    if rtt_match:
+                        latency = float(rtt_match.group(2))
+                        jitter = float(rtt_match.group(4))
+                    else:
+                        latency = 0.0
+                        jitter = 0.0
+                    samples.append(_mk("latency_ms",      "network", node.id, latency, {"dst": target.id, "source": "ping"}))
+                    samples.append(_mk("packet_loss_pct", "network", node.id, loss,    {"dst": target.id, "source": "ping"}))
+                    samples.append(_mk("jitter_ms",       "network", node.id, jitter,  {"dst": target.id, "source": "ping"}))
+
+            # ── Control/Dataplane: OVS on switches ───────────────────────────
+            if node.type == "switch":
+                # Auto-detect OVS bridge name
+                bridge_list = _run_cmd(["docker", "exec", container, "ovs-vsctl", "list-br"])
+                bridges = [b.strip() for b in bridge_list.splitlines() if b.strip()]
+                bridge = bridges[0] if bridges else f"br-{node.id}"
+
+                if layer_flags.get("control", True):
+                    ofctl_ports = _run_cmd(["docker", "exec", container, "ovs-ofctl", "dump-ports", bridge])
+                    if ofctl_ports:
+                        samples.append(_mk("controller_conn_ok", "control", node.id, 1.0, {"source": "ovs-ofctl", "bridge": bridge}))
+                        # Parse per-port rx/tx from dump-ports
+                        port_rx = re.findall(r"rx pkts=(\d+)", ofctl_ports)
+                        port_tx = re.findall(r"tx pkts=(\d+)", ofctl_ports)
+                        total_rx = sum(int(x) for x in port_rx)
+                        total_tx = sum(int(x) for x in port_tx)
+                        samples.append(_mk("port_rx_pkts", "dataplane", node.id, float(total_rx), {"source": "ovs-ofctl", "bridge": bridge}))
+                        samples.append(_mk("port_tx_pkts", "dataplane", node.id, float(total_tx), {"source": "ovs-ofctl", "bridge": bridge}))
+                        # Drop counters
+                        port_drop = re.findall(r"tx drop=(\d+)", ofctl_ports)
+                        total_drop = sum(int(x) for x in port_drop)
+                        samples.append(_mk("port_tx_drops", "dataplane", node.id, float(total_drop), {"source": "ovs-ofctl", "bridge": bridge}))
+                        # Queue occupancy proxy: drop% as occupancy
+                        if total_tx > 0:
+                            occ = round(total_drop / total_tx * 100.0, 3)
+                            samples.append(_mk("queue_occupancy_pct", "link", node.id, occ, {"source": "ovs-ofctl"}))
+
+                if layer_flags.get("dataplane", True):
+                    flows_dump = _run_cmd(["docker", "exec", container, "ovs-ofctl", "dump-flows", bridge])
+                    if flows_dump:
+                        flow_lines = [ln for ln in flows_dump.splitlines() if "n_packets" in ln]
+                        for idx, ln in enumerate(flow_lines[:10]):
+                            m_pkts  = re.search(r"n_packets=(\d+)", ln)
+                            m_bytes = re.search(r"n_bytes=(\d+)", ln)
+                            pkts = float(m_pkts.group(1))  if m_pkts  else 0.0
+                            byt  = float(m_bytes.group(1)) if m_bytes else 0.0
+                            samples.append(_mk("openflow_flow_packets", "dataplane", node.id, pkts, {"flow_id": f"flow_{idx}", "source": "ovs-ofctl"}))
+                            samples.append(_mk("openflow_flow_bytes",   "dataplane", node.id, byt,  {"flow_id": f"flow_{idx}", "source": "ovs-ofctl"}))
+                        total_pkts  = sum(float(re.search(r"n_packets=(\d+)", ln).group(1)) for ln in flow_lines if re.search(r"n_packets=(\d+)", ln))
+                        total_bytes = sum(float(re.search(r"n_bytes=(\d+)",   ln).group(1)) for ln in flow_lines if re.search(r"n_bytes=(\d+)",   ln))
+                        samples.append(_mk("flows_installed", "control",   node.id, float(len(flow_lines)),  {"source": "ovs-ofctl"}))
+                        samples.append(_mk("table_hits",      "dataplane", node.id, round(total_pkts, 0),   {"source": "ovs-ofctl"}))
+                        samples.append(_mk("table_misses",    "dataplane", node.id, 0.0,                    {"source": "ovs-ofctl"}))
+
+        except Exception as e:
+            logger.error(f"Erro ao coletar métricas do nó {node.id}: {e}")
+            continue
+
+    # ── Emit per-link (source->target) aggregated metrics ───────────────────
+    for link in topology.links:
+        link_path = f"{link.source}->{link.target}"
+        # Propagate link_util_pct: max of all iface-level util samples for that source node
+        src_utils = [
+            s.value for s in samples
+            if s.metric == "link_util_pct" and s.node.startswith(f"{link.source}:")
+        ]
+        if src_utils:
+            samples.append(_mk("link_util_pct", "link", link_path, round(max(src_utils), 3), {"source": "aggregated"}))
+        # if_link_up: mark link down if any iface on source or target is down
+        src_up = [
+            s.value for s in samples
+            if s.metric == "if_link_up" and (s.node.startswith(f"{link.source}:") or s.node.startswith(f"{link.target}:"))
+        ]
+        if src_up:
+            samples.append(_mk("if_link_up", "link", link_path, float(all(v >= 0.5 for v in src_up)), {"source": "aggregated"}))
+
     return samples
 
 
@@ -1013,17 +1220,12 @@ def _sample_to_dict(sample: MetricSample) -> Dict[str, Any]:
 async def _event_stream():
     while True:
         topology = next(iter(topologies.values()), None)
-
-        latest_by_metric: Dict[str, MetricSample] = {}
-        for s in metric_samples:
-            cur = latest_by_metric.get(s.metric)
-            if not cur or s.timestamp > cur.timestamp:
-                latest_by_metric[s.metric] = s
-        latest_for_defs: List[MetricSample] = []
-        for d in metric_definitions:
-            s = latest_by_metric.get(d.name)
-            if s is not None:
-                latest_for_defs.append(s)
+        # O(|unique_keys|) instead of O(|all_samples|)
+        def_names = {d.name for d in metric_definitions}
+        latest_for_defs = [
+            s for s in _samples_latest.values()
+            if s.metric in def_names
+        ]
 
         payload = {
             "type": "snapshot",
@@ -1049,7 +1251,13 @@ experiments: Dict[str, Experiment] = {}
 runs: Dict[str, ExperimentRun] = {}
 flows: Dict[str, FlowRule] = {}
 run_metrics: Dict[str, List[MetricRecord]] = {}
-metric_samples: List[MetricSample] = []
+# ── Metric storage ────────────────────────────────────────────────────────────
+# _samples_latest: O(1) lookup of the most-recent sample for each
+#   (metric, node, layer) triple.  Used by /metrics/latest and SSE.
+# metric_samples: bounded ring-buffer for time-range queries (old API compat).
+MAX_SAMPLES = int(os.getenv("MAX_METRIC_SAMPLES", "50000"))
+_samples_latest: Dict[str, MetricSample] = {}
+metric_samples: deque = deque(maxlen=MAX_SAMPLES)
 seen_metric_names: set[str] = set()
 layer_flags: Dict[MetricLayer, bool] = metric_layer_flags({})
 real_collection_default = os.getenv("REAL_COLLECTION", "0") == "1"
@@ -1128,6 +1336,10 @@ if not metric_samples:
         for s in restored:
             try:
                 seen_metric_names.add(str(s.metric))
+                key = f"{s.metric}:{s.node}:{s.layer}"
+                cur = _samples_latest.get(key)
+                if cur is None or s.timestamp >= cur.timestamp:
+                    _samples_latest[key] = s
             except Exception:
                 pass
 
@@ -1501,8 +1713,24 @@ async def get_system_settings() -> Dict[str, Any]:
 async def update_system_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     """Update system settings. Accepts: use_real_data, auto_collect_enabled, collect_interval_sec."""
     if "use_real_data" in settings and isinstance(settings["use_real_data"], bool):
+        prev_mode = system_settings.get("use_real_data", real_collection_default)
         system_settings["use_real_data"] = settings["use_real_data"]
         logger.info(f"Modo de coleta alterado: {'REAL' if settings['use_real_data'] else 'SINTÉTICO'}")
+        # When mode changes, clear stale samples so the new mode's data
+        # is not polluted by the previous mode's samples.
+        if prev_mode != settings["use_real_data"]:
+            metric_samples.clear()
+            _samples_latest.clear()
+            logger.info("metric_samples e _samples_latest limpos após troca de modo.")
+            # Trigger an immediate collection cycle in the new mode
+            topology = next(iter(topologies.values()), None)
+            new_mode_real = settings["use_real_data"]
+            try:
+                new_samples = _collect_real(topology, {"version": software_version}) if new_mode_real else _collect_synthetic_full(topology, {"version": software_version})
+                if new_samples:
+                    _store_samples(new_samples)
+            except Exception as exc:
+                logger.warning(f"Coleta imediata pós-troca de modo falhou: {exc}")
     
     if "auto_collect_enabled" in settings and isinstance(settings["auto_collect_enabled"], bool):
         system_settings["auto_collect_enabled"] = settings["auto_collect_enabled"]
@@ -1625,6 +1853,138 @@ async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
+# ── Experiment draft (rascunho) persistence ───────────────────────────────────
+EXPERIMENT_DRAFT_FILE = temp_root / "experiment_draft.json"
+EXPERIMENT_RUN_STATE_FILE = temp_root / "experiment_run_state.json"
+EXPERIMENT_SELECTED_METRICS_FILE = temp_root / "experiment_selected_metrics.json"
+EXPERIMENT_HISTORY_FILE = temp_root / "experiment_history.json"
+
+
+@app.get("/experiment/draft")
+async def get_experiment_draft() -> Dict[str, Any]:
+    """Carregar rascunho do experimento (para persistência de UI)"""
+    if EXPERIMENT_DRAFT_FILE.exists():
+        try:
+            with open(EXPERIMENT_DRAFT_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+@app.post("/experiment/draft")
+async def save_experiment_draft(draft: Dict[str, Any]) -> Dict[str, str]:
+    """Salvar rascunho do experimento (para persistência de UI)"""
+    try:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        with open(EXPERIMENT_DRAFT_FILE, "w") as f:
+            json.dump(draft, f, indent=2)
+        return {"status": "saved"}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
+@app.get("/experiment/run-state")
+async def get_experiment_run_state() -> Dict[str, Any]:
+    """Carregar estado de execução do experimento"""
+    if EXPERIMENT_RUN_STATE_FILE.exists():
+        try:
+            with open(EXPERIMENT_RUN_STATE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+@app.post("/experiment/run-state")
+async def save_experiment_run_state(state: Dict[str, Any]) -> Dict[str, str]:
+    """Salvar estado de execução do experimento"""
+    try:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        with open(EXPERIMENT_RUN_STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
+        return {"status": "saved"}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
+@app.get("/experiment/selected-metrics")
+async def get_selected_metrics() -> Dict[str, Any]:
+    """Carregar métricas selecionadas"""
+    if EXPERIMENT_SELECTED_METRICS_FILE.exists():
+        try:
+            with open(EXPERIMENT_SELECTED_METRICS_FILE, "r") as f:
+                data = json.load(f)
+                return {"metricKeys": data}
+        except Exception:
+            pass
+    return {"metricKeys": []}
+
+
+@app.post("/experiment/selected-metrics")
+async def save_selected_metrics(data: Dict[str, Any]) -> Dict[str, str]:
+    """Salvar métricas selecionadas"""
+    try:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        metric_keys = data.get("metricKeys", [])
+        with open(EXPERIMENT_SELECTED_METRICS_FILE, "w") as f:
+            json.dump(metric_keys, f, indent=2)
+        return {"status": "saved"}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
+@app.get("/experiment/history")
+async def get_experiment_history() -> List[Dict[str, Any]]:
+    """Carregar histórico de experimentos do disco"""
+    if EXPERIMENT_HISTORY_FILE.exists():
+        try:
+            with open(EXPERIMENT_HISTORY_FILE, "r") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
+    return []
+
+
+@app.post("/experiment/history")
+async def save_experiment_history(records: List[Dict[str, Any]]) -> Dict[str, str]:
+    """Salvar histórico de experimentos no disco"""
+    try:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        with open(EXPERIMENT_HISTORY_FILE, "w") as f:
+            json.dump(records, f, indent=2)
+        return {"status": "saved", "count": len(records)}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
+@app.post("/experiment/history/append")
+async def append_experiment_record(record: Dict[str, Any]) -> Dict[str, str]:
+    """Adicionar um registro ao histórico de experimentos"""
+    try:
+        temp_root.mkdir(parents=True, exist_ok=True)
+        existing: list = []
+        if EXPERIMENT_HISTORY_FILE.exists():
+            try:
+                with open(EXPERIMENT_HISTORY_FILE, "r") as f:
+                    existing = json.load(f)
+                    if not isinstance(existing, list):
+                        existing = []
+            except Exception:
+                existing = []
+        # Adicionar no início (mais recente primeiro)
+        existing.insert(0, record)
+        # Manter apenas os últimos 200 registros
+        existing = existing[:200]
+        with open(EXPERIMENT_HISTORY_FILE, "w") as f:
+            json.dump(existing, f, indent=2)
+        return {"status": "saved", "count": len(existing)}
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
 @app.get("/netmon/blocks")
 async def list_netmon_blocks() -> List[Dict[str, Any]]:
     try:
@@ -1691,14 +2051,15 @@ async def ingest_samples(payload: MetricSample | List[MetricSample]) -> Dict[str
 
 @app.get("/metrics/latest", response_model=List[MetricSample])
 async def latest_metrics(metric: str | None = None, node: str | None = None, layer: MetricLayer | None = None) -> List[MetricSample]:
-    filtered = [s for s in metric_samples if (not metric or s.metric == metric) and (not node or s.node == node) and (not layer or s.layer == layer)]
-    latest_by_key: Dict[str, MetricSample] = {}
-    for sample in filtered:
-        key = f"{sample.metric}:{sample.node}:{sample.layer}"
-        current = latest_by_key.get(key)
-        if not current or sample.timestamp > current.timestamp:
-            latest_by_key[key] = sample
-    return list(latest_by_key.values())
+    # O(|unique metric:node:layer keys|) ≈ constant; previously O(|all stored samples|)
+    if not metric and not node and not layer:
+        return list(_samples_latest.values())
+    return [
+        s for s in _samples_latest.values()
+        if (not metric or s.metric == metric)
+        and (not node or s.node == node)
+        and (not layer or s.layer == layer)
+    ]
 
 
 @app.get("/metrics/export")
@@ -1712,14 +2073,14 @@ async def export_metrics(layer: MetricLayer | None = None) -> Response:
     return Response(content="\n".join(lines), media_type="text/plain")
 
 
-@app.post("/metrics/collect", response_model=Dict[str, int], dependencies=[Depends(require_api_key)])
+@app.post("/metrics/collect", response_model=Dict[str, Any], dependencies=[Depends(require_api_key)])
 async def collect_metrics(
     mode: str = "synthetic",
     run_id: str | None = None,
     experiment_id: str | None = None,
     topology_id: str | None = None,
     version: str | None = None,
-) -> Dict[str, int]:
+) -> Dict[str, Any]:
     labels = {k: v for k, v in {"run_id": run_id, "experiment_id": experiment_id, "topology_id": topology_id, "version": version}.items() if v is not None}
     topology = topologies.get(topology_id) if topology_id else next(iter(topologies.values()), None)
     use_real_setting = system_settings.get("use_real_data", real_collection_default)

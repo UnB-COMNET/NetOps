@@ -1,5 +1,5 @@
-import { LabEditor } from "@/features/lab/LabEditor";
+import { ComparisonLab } from "@/features/lab/ComparisonLab";
 
 export default function LabPage() {
-  return <LabEditor />;
+  return <ComparisonLab />;
 }

@@ -14,7 +14,7 @@ import { simulateSeriesMap, buildDatasetRows, datasetToCsv, type SeriesMap } fro
 import { simulateControlPlaneLog, type ControlPlaneEvent } from "@/lib/controlPlaneSim";
 import { lttbSeriesMap } from "@/lib/lttb";
 import { confidenceInterval95, mean, median, outlierIndicesZ, p95, p99, pearsonR, stddev, variance } from "@/lib/stats";
-import { experimentApi, topologyApi, metricsApi, type MetricSample, type ExperimentBundle } from "@/lib/api";
+import { experimentApi, topologyApi, metricsApi, type MetricSample, type ExperimentBundle, API_BASE } from "@/lib/api";
 import {
   fsSupportedInBrowser,
   saveDirHandle as persistDirHandle,
@@ -82,6 +82,68 @@ const L0_L7: Array<Extract<MetricLayer, "L0" | "L1" | "L2" | "L3" | "L4" | "L5" 
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+// Helper seguro para localStorage que não falha durante navegação Next.js
+function safeLocalStorage() {
+  try {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined" && localStorage) {
+      return localStorage;
+    }
+  } catch (e) {
+    console.warn("[safeLocalStorage] localStorage not available:", e);
+  }
+  return null;
+}
+
+// Funções auxiliares para persistência via API (sistema de arquivos)
+async function saveRunStateToBackend(state: any) {
+  try {
+    await fetch(`${API_BASE}/experiment/run-state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+  } catch (e) {
+    console.warn("[saveRunStateToBackend] Failed:", e);
+  }
+}
+
+async function loadRunStateFromBackend(): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/experiment/run-state`);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (e) {
+    console.warn("[loadRunStateFromBackend] Failed:", e);
+  }
+  return {};
+}
+
+async function saveSelectedMetricsToBackend(metricKeys: string[]) {
+  try {
+    await fetch(`${API_BASE}/experiment/selected-metrics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ metricKeys }),
+    });
+  } catch (e) {
+    console.warn("[saveSelectedMetricsToBackend] Failed:", e);
+  }
+}
+
+async function loadSelectedMetricsFromBackend(): Promise<string[]> {
+  try {
+    const response = await fetch(`${API_BASE}/experiment/selected-metrics`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.metricKeys || [];
+    }
+  } catch (e) {
+    console.warn("[loadSelectedMetricsFromBackend] Failed:", e);
+  }
+  return [];
 }
 
 function makeRunId() {
@@ -176,12 +238,13 @@ function formatMetricValue(spec: MetricSpec, raw: number) {
 }
 
 function readRunHistory(): RunRecord[] {
+  // Legado: tenta ler do localStorage como fallback (pode estar vazio)
   try {
-    const raw = localStorage.getItem("netops.experiments.runs");
+    const ls = safeLocalStorage();
+    const raw = ls?.getItem("netops.experiments.runs");
     if (!raw) return [];
     const parsed = JSON.parse(raw) as RunRecord[];
     if (!Array.isArray(parsed)) return [];
-    // Backward compatible normalization (older records may miss new fields).
     return parsed
       .filter((r) => r && typeof r === "object" && typeof (r as any).id === "string")
       .map((r) => {
@@ -209,6 +272,56 @@ function readRunHistory(): RunRecord[] {
   }
 }
 
+function normalizeRunRecord(rr: any): RunRecord {
+  const cfg = rr.config as ManualExperimentConfig;
+  return {
+    id: rr.id,
+    seed: safeNumber(rr.seed, hashSeed(String(rr.id))),
+    startedAt: typeof rr.startedAt === "string" ? rr.startedAt : nowIso(),
+    endedAt: typeof rr.endedAt === "string" ? rr.endedAt : nowIso(),
+    status: rr.status === "Falha" ? "Falha" : "Sucesso",
+    config: cfg,
+    templateId: typeof rr.templateId === "string" ? rr.templateId : rr.templateId === null ? null : undefined,
+    metricKeys: Array.isArray(rr.metricKeys) ? rr.metricKeys.filter((k: any) => typeof k === "string") : cfg?.telemetry?.metricKeys ?? [],
+    seriesMap: rr.seriesMap && typeof rr.seriesMap === "object" ? (rr.seriesMap as SeriesMap) : undefined,
+    annotations: Array.isArray(rr.annotations) ? (rr.annotations as Annotation[]) : undefined,
+    controlPlane: Array.isArray(rr.controlPlane) ? (rr.controlPlane as ControlPlaneEvent[]) : undefined,
+    topology: rr.topology && typeof rr.topology === "object" ? (rr.topology as TopologySnapshotSummary) : rr.topology === null ? null : undefined,
+    insight: typeof rr.insight === "string" ? rr.insight : undefined,
+    batch: rr.batch && typeof rr.batch === "object" ? rr.batch : rr.batch === null ? null : undefined,
+  } satisfies RunRecord;
+}
+
+async function readRunHistoryFromBackend(): Promise<RunRecord[]> {
+  try {
+    const response = await fetch(`${API_BASE}/experiment/history`);
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        return data
+          .filter((r: any) => r && typeof r === "object" && typeof r.id === "string")
+          .map(normalizeRunRecord);
+      }
+    }
+  } catch (e) {
+    console.warn("[readRunHistoryFromBackend] Failed:", e);
+  }
+  return [];
+}
+
+async function appendRunRecordToBackend(record: RunRecord): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/experiment/history/append`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record),
+    });
+    console.log("[appendRunRecordToBackend] ✅ Record saved:", record.id);
+  } catch (e) {
+    console.warn("[appendRunRecordToBackend] Failed:", e);
+  }
+}
+
 /**
  * Persists run history to localStorage using LTTB downsampling.
  *
@@ -226,55 +339,33 @@ function readRunHistory(): RunRecord[] {
  * The authoritative record is always in experiments/run_metrics/ on disk.
  */
 function writeRunHistory(next: RunRecord[]) {
+  // Agora apenas salva via backend (veja appendRunRecordToBackend para novos registros)
+  // Esta função é mantida para compatibilidade mas não faz nada crítico
   const MAX_RUNS = 100;
   const runs = next.slice(0, MAX_RUNS);
 
-  function applyLttb(budget: number): RunRecord[] {
-    return runs.map((r) => ({
-      ...r,
-      seriesMap: r.seriesMap ? lttbSeriesMap(r.seriesMap, budget) : r.seriesMap,
-    }));
+  // Tentar salvar no localStorage como cache local (não crítico)
+  const ls = safeLocalStorage();
+  if (ls) {
+    try {
+      ls.setItem("netops.experiments.runs", JSON.stringify(
+        runs.map((r) => ({ ...r, seriesMap: undefined })) // sem seriesMap para economizar espaço
+      ));
+    } catch { /* ignora erros de quota */ }
   }
-
-  // Attempt 1: full fidelity
-  try {
-    localStorage.setItem("netops.experiments.runs", JSON.stringify(runs));
-    return;
-  } catch { /* QuotaExceededError */ }
-
-  // Attempt 2: LTTB @ 1 MB total
-  try {
-    localStorage.setItem("netops.experiments.runs", JSON.stringify(applyLttb(1_000_000)));
-    return;
-  } catch { /* still too large */ }
-
-  // Attempt 3: LTTB @ 200 KB total
-  try {
-    localStorage.setItem("netops.experiments.runs", JSON.stringify(applyLttb(200_000)));
-    return;
-  } catch { /* still too large */ }
-
-  // Attempt 4: metadata only — charts re-simulate from seed (no visual loss)
-  try {
-    localStorage.setItem("netops.experiments.runs", JSON.stringify(
-      runs.map((r) => ({ ...r, seriesMap: undefined }))
-    ));
-    return;
-  } catch { /* still failing */ }
-
-  // Attempt 5: last resort
-  try {
-    localStorage.setItem("netops.experiments.runs", JSON.stringify(
-      runs.slice(0, 10).map((r) => ({ ...r, seriesMap: undefined }))
-    ));
-  } catch {
-    // Silently give up — run lives in memory for this session
-  }
+  
+  // Salvar no backend via fetch assíncrono
+  fetch(`${API_BASE}/experiment/history`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(runs),
+  }).catch((e) => console.warn("[writeRunHistory] Backend save failed:", e));
 }
 
 function readLatestTopologySummary(): TopologySnapshotSummary | null {
   try {
-    const raw = localStorage.getItem("netops.topology.snapshots");
+    const ls = safeLocalStorage();
+    const raw = ls?.getItem("netops.topology.snapshots");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as any[];
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
@@ -477,6 +568,14 @@ function LayerGroup({
   setSelectedKeys: (next: Set<string>) => void;
 }) {
   const specs = useMemo(() => getLayerMetrics(layer), [layer]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return specs;
+    const q = search.toLowerCase();
+    return specs.filter((s) => s.key.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  }, [specs, search]);
 
   const selectedCount = useMemo(() => {
     let c = 0;
@@ -489,12 +588,25 @@ function LayerGroup({
 
   return (
     <div className="rounded-lg border border-border-0/60 bg-bg-1/30">
-      <div className="flex items-center justify-between gap-2 border-b border-border-0/50 px-2 py-1.5">
+      {/* Header — always visible */}
+      <div
+        className="flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 select-none"
+        onClick={() => setOpen((v) => !v)}
+      >
         <div className="flex items-center gap-2">
+          <span className="text-[10px] text-fg-1">{open ? "▾" : "▸"}</span>
           <div className="font-mono text-[11px] font-semibold text-fg-0">{layer}</div>
           <div className="text-[10px] text-fg-1">{selectedCount}/{specs.length}</div>
+          {selectedCount > 0 && (
+            <span className="rounded-md border border-accent-ok/40 bg-accent-ok/10 px-1.5 py-0.5 font-mono text-[9px] text-accent-ok">
+              {selectedCount} sel
+            </span>
+          )}
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-[11px] text-fg-1">
+        <label
+          className="flex cursor-pointer items-center gap-1.5 text-[11px] text-fg-1"
+          onClick={(e) => e.stopPropagation()}
+        >
           <input
             type="checkbox"
             checked={allSelected}
@@ -508,24 +620,44 @@ function LayerGroup({
               setSelectedKeys(next);
             }}
           />
-          Marcar camada
+          Todas
         </label>
       </div>
-      <div className="space-y-1 p-2">
-        {specs.map((spec) => (
-          <MetricRow
-            key={spec.key}
-            spec={spec}
-            checked={selectedKeys.has(spec.key)}
-            onToggle={() => {
-              const next = new Set(selectedKeys);
-              if (next.has(spec.key)) next.delete(spec.key);
-              else next.add(spec.key);
-              setSelectedKeys(next);
-            }}
-          />
-        ))}
-      </div>
+
+      {/* Collapsible body */}
+      {open && (
+        <div className="border-t border-border-0/50">
+          {/* Search inside layer */}
+          <div className="px-2 pt-1.5 pb-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filtrar métricas…"
+              className="h-7 w-full rounded-md border border-border-0/60 bg-bg-2/50 px-2 text-[11px] text-fg-0 placeholder:text-fg-1/60 focus:outline-none focus:ring-1 focus:ring-accent-ok/40"
+            />
+          </div>
+          <div className="max-h-48 space-y-1 overflow-y-auto p-2 pt-0">
+            {filtered.length === 0 ? (
+              <div className="py-2 text-center text-[10px] text-fg-1">Nenhuma métrica encontrada</div>
+            ) : (
+              filtered.map((spec) => (
+                <MetricRow
+                  key={spec.key}
+                  spec={spec}
+                  checked={selectedKeys.has(spec.key)}
+                  onToggle={() => {
+                    const next = new Set(selectedKeys);
+                    if (next.has(spec.key)) next.delete(spec.key);
+                    else next.add(spec.key);
+                    setSelectedKeys(next);
+                  }}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -562,42 +694,170 @@ function TemplateCard({ t, onCloneAndEdit }: { t: ExperimentTemplate; onCloneAnd
 }
 
 export function ExperimentsView() {
+  // Teste de localStorage no pywebview
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("=".repeat(50));
+      console.log("[DESKTOP DEBUG] ExperimentsView mounted!");
+      const ls = safeLocalStorage();
+      console.log("[DESKTOP DEBUG] localStorage available?", ls !== null);
+      console.log("[DESKTOP DEBUG] window.__netopsTimers?", (window as any).__netopsTimers);
+      
+      try {
+        // Teste de leitura/escrita
+        let test: string | null = null;
+        let metrics: string | null = null;
+        let runState: string | null = null;
+        let configState: string | null = null;
+        
+        if (ls) {
+          ls.setItem("netops.test", "working");
+          test = ls.getItem("netops.test");
+          console.log("[DESKTOP DEBUG] localStorage works?", test === "working" ? "YES" : "NO");
+          
+          // Verificar itens salvos
+          metrics = ls.getItem("netops.experiments.selectedMetrics");
+          runState = ls.getItem("netops.experiments.runState");
+          configState = ls.getItem("netops.experiments.currentConfig");
+        }
+        console.log("[DESKTOP DEBUG] Saved metrics?", metrics ? `YES (${JSON.parse(metrics).length} keys)` : "NO");
+        console.log("[DESKTOP DEBUG] Saved run state?", runState ? `YES (status: ${JSON.parse(runState).runStatus})` : "NO");
+        console.log("[DESKTOP DEBUG] Saved config?", configState ? `YES (name: ${JSON.parse(configState).general.name})` : "NO");
+      } catch (e) {
+        console.error("[DESKTOP DEBUG] localStorage test error:", e);
+      }
+      console.log("=".repeat(50));
+    }
+  }, []);
+
   const [tab, setTab] = useState<Tab>("manual");
 
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
-  const [config, setConfig] = useState<ManualExperimentConfig>(() => ({
-    general: {
-      name: "Experimento Manual",
-      scientificDescription: "",
-      durationS: 120,
-      samplingMs: 250,
-    },
-    traffic: {
-      srcHostId: HOST_IDS[0]!,
-      dstHostId: HOST_IDS[3]!,
-      type: "TCP",
-      rateValue: 300,
-      rateUnit: "Mbps",
-    },
-    telemetry: { metricKeys: [] },
-    scripts: { pre: "", post: "" },
-  }));
+  const [config, setConfig] = useState<ManualExperimentConfig>(() => {
+    // Carregar config salvo do localStorage (apenas no cliente)
+    if (typeof window !== "undefined") {
+      try {
+        const ls = safeLocalStorage();
+        const saved = ls?.getItem("netops.experiments.currentConfig");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          console.log("[ExperimentsView] Config loaded from localStorage:", parsed.general.name);
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("Failed to load saved config", e);
+      }
+    }
+    console.log("[ExperimentsView] Using default config");
+    return {
+      general: {
+        name: "Experimento Manual",
+        scientificDescription: "",
+        durationS: 120,
+        samplingMs: 250,
+        repeatCount: 1, // Número de repetições do experimento
+      },
+      traffic: {
+        srcHostId: HOST_IDS[0]!,
+        dstHostId: HOST_IDS[3]!,
+        type: "TCP",
+        rateValue: 300,
+        rateUnit: "Mbps",
+      },
+      telemetry: { metricKeys: [] },
+      scripts: { pre: "", post: "" },
+    };
+  });
 
-  const [selectedMetricKeys, setSelectedMetricKeys] = useState<Set<string>>(() => new Set());
+  // Função helper que atualiza config E salva imediatamente no localStorage + API
+  const updateConfig = useCallback((updater: (prev: ManualExperimentConfig) => ManualExperimentConfig) => {
+    setConfig((prev) => {
+      const next = updater(prev);
+      // Salvar imediatamente no localStorage
+      try {
+        const ls = safeLocalStorage();
+        if (ls) {
+          ls.setItem("netops.experiments.currentConfig", JSON.stringify(next));
+          console.log("[ExperimentsView] Config saved to localStorage:", next.general.name);
+        }
+      } catch (e) {
+        console.error("Failed to save config to localStorage", e);
+      }
+      // Salvar também via API (backup para pywebview)
+      fetch(`${API_BASE}/experiment/draft`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      }).catch((e) => console.warn("Failed to save config to API", e));
+      return next;
+    });
+  }, []);
+
+  // Carregar config da API ao montar o componente (fallback se localStorage falhar)
   useEffect(() => {
-    setConfig((p) => ({ ...p, telemetry: { metricKeys: Array.from(selectedMetricKeys) } }));
+    const loadFromApi = async () => {
+      try {
+        // Só carregar da API se o localStorage estiver com config padrão
+        if (config.general.name === "Experimento Manual" && config.general.scientificDescription === "") {
+          const response = await fetch(`${API_BASE}/experiment/draft`);
+          if (response.ok) {
+            const draft = await response.json();
+            if (draft && draft.general && draft.general.name) {
+              console.log("[ExperimentsView] Config loaded from API:", draft.general.name);
+              setConfig(draft);
+              // Sincronizar com localStorage
+              const ls = safeLocalStorage();
+              if (ls) {
+                ls.setItem("netops.experiments.currentConfig", JSON.stringify(draft));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load config from API", e);
+      }
+    };
+    loadFromApi();
+  }, []); // Executar apenas uma vez ao montar
+
+  const [selectedMetricKeys, setSelectedMetricKeys] = useState<Set<string>>(new Set());
+  
+  // Carregar métricas selecionadas do backend
+  useEffect(() => {
+    const loadMetrics = async () => {
+      const keys = await loadSelectedMetricsFromBackend();
+      if (keys.length > 0) {
+        console.log("[ExperimentsView] ✅ Loaded selected metrics from backend:", keys.length, "keys");
+        setSelectedMetricKeys(new Set(keys));
+      }
+    };
+    loadMetrics();
+  }, []);
+  
+  useEffect(() => {
+    const keysArray = Array.from(selectedMetricKeys);
+    setConfig((p) => ({ ...p, telemetry: { metricKeys: keysArray } }));
+    // Salvar métricas selecionadas no backend
+    if (keysArray.length > 0) {
+      saveSelectedMetricsToBackend(keysArray);
+      console.log("[ExperimentsView] Saved selected metrics to backend:", selectedMetricKeys.size, "keys");
+    }
   }, [selectedMetricKeys]);
 
   const [validation, setValidation] = useState<string | null>(null);
 
+  // Estados de execução - iniciar vazio e carregar do backend no useEffect
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
   const [runId, setRunId] = useState<string | null>(null);
   const [runStartMs, setRunStartMs] = useState<number | null>(null);
   const [runRemainingMs, setRunRemainingMs] = useState<number>(0);
+  const [currentRepeat, setCurrentRepeat] = useState<number>(1);
+  const [totalRepeats, setTotalRepeats] = useState<number>(1);
   const [logs, setLogs] = useState<string[]>([]);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [eventLabel, setEventLabel] = useState<string>("");
+  // Histórico carregado do backend via useEffect
   const [history, setHistory] = useState<RunRecord[]>([]);
 
   const [batchEnabled, setBatchEnabled] = useState<boolean>(false);
@@ -625,6 +885,144 @@ export function ExperimentsView() {
   const timersRef = useRef<{ tick?: number; log?: number }>({});
   const startMsRef = useRef<number | null>(null);
   const remainingMsRef = useRef<number>(0);
+
+  // Recuperar timers globais quando o componente monta
+  useEffect(() => {
+    console.log("=== [ExperimentsView MOUNT] Component mounted ===");
+    console.log("[ExperimentsView] Initial runStatus:", runStatus);
+    console.log("[ExperimentsView] Initial runId:", runId);
+    console.log("[ExperimentsView] Initial runRemainingMs:", runRemainingMs);
+    
+    if (typeof window !== "undefined") {
+      const globalTimers = (window as any).__netopsTimers;
+      console.log("[ExperimentsView] Global timers found:", globalTimers);
+      
+      // Se há timers rodando mas o componente não os tem na ref
+      if (globalTimers && (globalTimers.tick || globalTimers.log) && !timersRef.current.tick) {
+        console.log("[ExperimentsView] ✅ Detected active timers from previous mount");
+        
+        // IMPORTANTE: Manter os timers rodando (não parar)
+        // Apenas copiar as referências para nossa ref local
+        timersRef.current = globalTimers;
+        
+        console.log("[ExperimentsView] ✅ Timers reconnected to current component instance");
+      } else if (!globalTimers) {
+        console.log("[ExperimentsView] ⚠️ No global timers found");
+      } else if (timersRef.current.tick) {
+        console.log("[ExperimentsView] ℹ️ Timers already in local ref");
+      }
+    }
+  }, [runStatus, runId, runRemainingMs]);
+  
+  // Carregar run state do backend ao montar o componente (PRIORITÁRIO)
+  useEffect(() => {
+    const loadRunState = async () => {
+      console.log("[ExperimentsView] 🔄 Loading run state from backend...");
+      const state = await loadRunStateFromBackend();
+      if (state && Object.keys(state).length > 0) {
+        console.log("[ExperimentsView] ✅ Loaded run state from backend:", state);
+        if (state.runStatus) setRunStatus(state.runStatus);
+        if (state.runId) {
+          setRunId(state.runId);
+          runIdRef.current = state.runId; // Sincronizar ref
+        }
+        if (state.runStartMs !== undefined) {
+          setRunStartMs(state.runStartMs);
+          startMsRef.current = state.runStartMs; // Sincronizar ref
+        }
+        if (state.runRemainingMs !== undefined) {
+          setRunRemainingMs(state.runRemainingMs);
+          remainingMsRef.current = state.runRemainingMs; // Sincronizar ref
+        }
+        if (state.currentRepeat !== undefined) setCurrentRepeat(state.currentRepeat);
+        if (state.totalRepeats !== undefined) setTotalRepeats(state.totalRepeats);
+        if (state.logs) setLogs(state.logs);
+        if (state.annotations) setAnnotations(state.annotations);
+      } else {
+        console.log("[ExperimentsView] ℹ️ No saved run state found");
+      }
+    };
+    loadRunState();
+  }, []);
+  
+  // Atualizar a UI periodicamente lendo do backend (SEMPRE ativo)
+  useEffect(() => {
+    console.log("[ExperimentsView] Starting sync interval...");
+    const syncInterval = window.setInterval(async () => {
+      if (typeof window !== "undefined") {
+        try {
+          const state = await loadRunStateFromBackend();
+          
+          if (state && Object.keys(state).length > 0) {
+            // Log da sincronização
+            if (state.runStatus === "running") {
+              console.log("[ExperimentsView] SYNC: status=", state.runStatus, "remaining=", state.runRemainingMs, "ms");
+            }
+            
+            // Atualizar todos os estados E refs se mudaram
+            if (state.runStatus && state.runStatus !== runStatus) {
+              console.log("[ExperimentsView] ✅ Syncing runStatus:", runStatus, "→", state.runStatus);
+              setRunStatus(state.runStatus);
+            }
+            if (state.runId && state.runId !== runId) {
+              setRunId(state.runId);
+              runIdRef.current = state.runId;
+            }
+            if (state.runStartMs !== undefined && state.runStartMs !== runStartMs) {
+              setRunStartMs(state.runStartMs);
+              startMsRef.current = state.runStartMs;
+            }
+            if (state.runRemainingMs !== undefined && state.runRemainingMs !== runRemainingMs) {
+              setRunRemainingMs(state.runRemainingMs);
+              remainingMsRef.current = state.runRemainingMs;
+            }
+            if (state.logs && JSON.stringify(state.logs) !== JSON.stringify(logs)) {
+              console.log("[ExperimentsView] ✅ Syncing logs:", logs.length, "→", state.logs.length);
+              setLogs(state.logs);
+            }
+            if (state.currentRepeat && state.currentRepeat !== currentRepeat) {
+              setCurrentRepeat(state.currentRepeat);
+            }
+            if (state.totalRepeats && state.totalRepeats !== totalRepeats) {
+              setTotalRepeats(state.totalRepeats);
+            }
+          }
+        } catch (e) {
+          console.error("[ExperimentsView] ❌ Failed to sync from backend:", e);
+        }
+      }
+    }, 1000); // Sincroniza a cada 1 segundo (reduzido de 500ms para evitar overhead)
+    
+    return () => {
+      console.log("[ExperimentsView] Stopping sync interval");
+      window.clearInterval(syncInterval);
+    };
+  }, [runStatus, runRemainingMs, logs, currentRepeat, totalRepeats, runId, runStartMs]);
+
+  // Salvar estado de execução sempre que mudar (usando backend - sistema de arquivos)
+  // Com debounce para evitar requisições excessivas
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const runState = {
+        runStatus,
+        runId,
+        runStartMs,
+        runRemainingMs,
+        currentRepeat,
+        totalRepeats,
+        logs: logs.slice(-100), // Salvar apenas os últimos 100 logs para não ficar muito grande
+        annotations,
+      };
+      
+      // Salvar no backend (confiável)
+      saveRunStateToBackend(runState);
+      
+      console.log("[ExperimentsView] Run state saved to backend:", runStatus, "rep", currentRepeat, "/", totalRepeats);
+    }, 300); // Debounce de 300ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [runStatus, runId, runStartMs, runRemainingMs, currentRepeat, totalRepeats, logs, annotations]);
+
   const runIdRef = useRef<string | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -645,12 +1043,32 @@ export function ExperimentsView() {
   const beginNextBatchIfAnyRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    setHistory(readRunHistory());
+    // Carregar histórico do backend (fonte de verdade)
+    readRunHistoryFromBackend().then((records) => {
+      if (records.length > 0) {
+        console.log("[ExperimentsView] ✅ Loaded", records.length, "experiments from backend");
+        setHistory(records);
+      } else {
+        // Fallback: tentar localStorage legado
+        const legacy = readRunHistory();
+        if (legacy.length > 0) {
+          console.log("[ExperimentsView] ℹ️ Migrating", legacy.length, "experiments from localStorage to backend");
+          setHistory(legacy);
+          // Migrar para o backend
+          fetch(`${API_BASE}/experiment/history`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(legacy),
+          }).catch(() => {});
+        }
+      }
+    });
   }, []);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("netops.experiments.dashboard.runId");
+      const ls = safeLocalStorage();
+      const raw = ls?.getItem("netops.experiments.dashboard.runId");
       if (typeof raw === "string" && raw.trim()) setDashboardRunId(raw.trim());
     } catch {
       // ignore
@@ -767,11 +1185,18 @@ export function ExperimentsView() {
     if (timersRef.current.tick) window.clearInterval(timersRef.current.tick);
     if (timersRef.current.log) window.clearInterval(timersRef.current.log);
     timersRef.current = {};
+    // Limpar timers globais
+    if (typeof window !== "undefined") {
+      delete (window as any).__netopsTimers;
+      console.log("[ExperimentsView] Cleared global timers");
+    }
   }, []);
 
-  useEffect(() => {
-    return () => stopTimers();
-  }, [stopTimers]);
+  // NÃO parar os timers quando o componente desmonta - experimentos devem continuar rodando
+  // Os timers só devem ser parados explicitamente (pause, abort, reset)
+  // useEffect(() => {
+  //   return () => stopTimers();
+  // }, [stopTimers]);
 
   const finalizeRun = useCallback(
     ({ status }: { status: "Sucesso" | "Falha" }) => {
@@ -837,7 +1262,10 @@ export function ExperimentsView() {
           batch,
         };
 
-        const nextHistory = [record, ...readRunHistory()];
+        // ✅ Salvar no backend IMEDIATAMENTE (fonte de verdade no disco)
+        appendRunRecordToBackend(record);
+        
+        const nextHistory = [record, ...history];
         writeRunHistory(nextHistory);
         setHistory(nextHistory);
 
@@ -850,10 +1278,9 @@ export function ExperimentsView() {
             if (!granted) return;
             await writeJsonToDir(dir, `experimento_${record.id}.json`, record);
           } catch {
-            // Falha silenciosa — o registro já está no localStorage
+            // Falha silenciosa
           }
         })();
-
         if (insight) setLogs((p) => [...p, `[${nowIso()}] ${insight}`].slice(-400));
 
         // ── Sync to back-end (fire-and-forget) ──────────────────────────────
@@ -919,7 +1346,7 @@ export function ExperimentsView() {
         console.error("[finalizeRun] unexpected error:", err);
       }
     },
-    [activeTemplateId, annotations, config, resolveSpecs, runId, saveDir, selectedMetricKeys],
+    [activeTemplateId, annotations, config, history, resolveSpecs, runId, saveDir, selectedMetricKeys],
   );
 
   const installTimers = useCallback(
@@ -932,36 +1359,107 @@ export function ExperimentsView() {
       const samplingMs = clamp(cfg.general.samplingMs, 80, 5000);
 
       timersRef.current.tick = window.setInterval(() => {
-        setRunRemainingMs((prev) => {
-          const next = Math.max(0, prev - 250);
-          remainingMsRef.current = next;
-          if (next === 0) {
-            stopTimers();
-            setRunStatus("success");
-            setLogs((p) => [...p, `[${nowIso()}] RUN ${id} · concluída (sucesso)`].slice(-400));
-            finalizeRun({ status: "Sucesso" });
+        // Ler estado atual
+        let currentRemaining = remainingMsRef.current;
+        
+        const next = Math.max(0, currentRemaining - 250);
+        remainingMsRef.current = next;
+        
+        // Atualizar React state (o useEffect de save cuida de salvar no backend)
+        setRunRemainingMs(next);
+        
+        if (next === 0) {
+          stopTimers();
+          setRunStatus("success");
+          setLogs((p) => [...p, `[${nowIso()}] RUN ${id} · concluída (sucesso)`].slice(-400));
+          finalizeRun({ status: "Sucesso" });
 
-            if (batchQueueRef.current.length > 0) {
-              setTimeout(() => beginNextBatchIfAnyRef.current(), 350);
+          // Check for repeats first, then batches
+          setTimeout(() => {
+            const didStartRepeat = beginNextRepeatIfAnyRef.current();
+            if (!didStartRepeat && batchQueueRef.current.length > 0) {
+              beginNextBatchIfAnyRef.current();
             }
-          }
-          return next;
-        });
+          }, 350);
+        }
       }, 250);
 
       timersRef.current.log = window.setInterval(() => {
-        setLogs((prev) => {
-          const t = durationMs - remainingMsRef.current;
-          const sel = metricKeys;
-          const sampleKeys = sel.slice(0, 6);
-          const parts = sampleKeys.map((k) => `${k}=${(Math.random() * 100).toFixed(2)}`);
-          const line = `[${nowIso()}] t+${Math.max(0, Math.round(t / 1000))}s · ${parts.join(" · ")}${sel.length > sampleKeys.length ? ` · +${sel.length - sampleKeys.length} métricas` : ""}`;
-          return [...prev, line].slice(-400);
-        });
+        const t = durationMs - remainingMsRef.current;
+        const sel = metricKeys;
+        const sampleKeys = sel.slice(0, 6);
+        const parts = sampleKeys.map((k) => `${k}=${(Math.random() * 100).toFixed(2)}`);
+        const line = `[${nowIso()}] t+${Math.max(0, Math.round(t / 1000))}s · ${parts.join(" · ")}${sel.length > sampleKeys.length ? ` · +${sel.length - sampleKeys.length} métricas` : ""}`;
+        
+        // Atualizar React state (o useEffect de save cuida de salvar no backend)
+        setLogs((prev) => [...prev, line].slice(-400));
       }, samplingMs);
+
+      // Salvar timers globalmente para que persistam quando o componente desmontar
+      if (typeof window !== "undefined") {
+        (window as any).__netopsTimers = timersRef.current;
+        console.log("[ExperimentsView] Saved timers to window:", timersRef.current);
+      }
     },
     [config, finalizeRun, selectedMetricKeys, stopTimers],
   );
+
+  // Start the next repeat of the same experiment
+  const beginNextRepeatIfAny = useCallback(() => {
+    if (currentRepeat >= totalRepeats) return false;
+
+    const meta = runMetaRef.current;
+    if (!meta) return false;
+
+    const nextRepeat = currentRepeat + 1;
+    setCurrentRepeat(nextRepeat);
+
+    // Start next run fresh with same config
+    stopTimers();
+    startMsRef.current = null;
+    remainingMsRef.current = 0;
+    runIdRef.current = null;
+    setAnnotations([]);
+    setEventLabel("");
+
+    const newId = makeRunId();
+    const cfg = meta.configSnapshot;
+    const start = Date.now();
+    const seed = hashSeed(newId) ^ start;
+    const durationMs = Math.max(1, Math.round(cfg.general.durationS * 1000));
+
+    runMetaRef.current = {
+      seed,
+      metricKeys: meta.metricKeys,
+      templateId: meta.templateId,
+      batch: meta.batch,
+      topology: meta.topology,
+      configSnapshot: cfg,
+    };
+
+    runIdRef.current = newId;
+    startMsRef.current = start;
+    remainingMsRef.current = durationMs;
+    setRunStartMs(start);
+    setRunRemainingMs(durationMs);
+    setRunId(newId);
+    setRunStatus("running");
+
+    const repeatInfo = ` · repetição ${nextRepeat}/${totalRepeats}`;
+    setLogs((prev) => [
+      ...prev,
+      `[${nowIso()}] RUN ${newId} · iniciar${meta.batch ? ` · lote ${meta.batch.index}/${meta.batch.total}` : ""}${repeatInfo}`,
+      `[${nowIso()}] sampling=${cfg.general.samplingMs}ms · duration=${cfg.general.durationS}s`,
+    ].slice(-400));
+
+    installTimers({ id: newId, durationMs });
+    return true;
+  }, [currentRepeat, totalRepeats, stopTimers, installTimers]);
+
+  const beginNextRepeatIfAnyRef = useRef(beginNextRepeatIfAny);
+  useEffect(() => {
+    beginNextRepeatIfAnyRef.current = beginNextRepeatIfAny;
+  }, [beginNextRepeatIfAny]);
 
   const beginNextBatchIfAny = useCallback(() => {
     const next = batchQueueRef.current.shift();
@@ -1071,6 +1569,11 @@ export function ExperimentsView() {
         batchQueueRef.current = [];
       }
 
+      // Initialize repeat tracking
+      const repeatCount = Math.max(1, config.general.repeatCount ?? 1);
+      setTotalRepeats(repeatCount);
+      setCurrentRepeat(1);
+
       startMsRef.current = start;
       remainingMsRef.current = durationMs;
       runIdRef.current = id;
@@ -1078,8 +1581,9 @@ export function ExperimentsView() {
       setRunRemainingMs(durationMs);
       setAnnotations([]);
       setEventLabel("");
+      const repeatInfo = repeatCount > 1 ? ` · repetição 1/${repeatCount}` : "";
       setLogs([
-        `[${nowIso()}] RUN ${id} · iniciar${runMetaRef.current.batch ? ` · lote ${runMetaRef.current.batch.index}/${runMetaRef.current.batch.total} (${runMetaRef.current.batch.start}+${(runMetaRef.current.batch.index - 1) * runMetaRef.current.batch.step}${config.traffic.rateUnit})` : ""}`,
+        `[${nowIso()}] RUN ${id} · iniciar${runMetaRef.current.batch ? ` · lote ${runMetaRef.current.batch.index}/${runMetaRef.current.batch.total} (${runMetaRef.current.batch.start}+${(runMetaRef.current.batch.index - 1) * runMetaRef.current.batch.step}${config.traffic.rateUnit})` : ""}${repeatInfo}`,
         `[${nowIso()}] sampling=${config.general.samplingMs}ms · duration=${config.general.durationS}s`,
         `[${nowIso()}] metrics=${metricKeys.slice(0, 8).join(", ")}${metricKeys.length > 8 ? ` +${metricKeys.length - 8}` : ""}`,
       ]);
@@ -1120,17 +1624,30 @@ export function ExperimentsView() {
     setLogs([]);
     setAnnotations([]);
     setEventLabel("");
+    setCurrentRepeat(1);
+    setTotalRepeats(1);
     startMsRef.current = null;
     remainingMsRef.current = 0;
     runIdRef.current = null;
     runMetaRef.current = null;
     batchQueueRef.current = [];
+    
+    // Limpar estado salvo
+    try {
+      localStorage.removeItem("netops.experiments.runState");
+      console.log("[ExperimentsView] Run state cleared");
+    } catch (e) {
+      console.error("Failed to clear run state", e);
+    }
   }, [stopTimers]);
 
   const inspectRun = useCallback(
     (r: RunRecord) => {
       try {
-        localStorage.setItem("netops.experiments.dashboard.runId", r.id);
+        const ls = safeLocalStorage();
+        if (ls) {
+          ls.setItem("netops.experiments.dashboard.runId", r.id);
+        }
       } catch {
         // ignore
       }
@@ -1795,7 +2312,10 @@ export function ExperimentsView() {
                         const id = e.target.value;
                         setDashboardRunId(id);
                         try {
-                          localStorage.setItem("netops.experiments.dashboard.runId", id);
+                          const ls = safeLocalStorage();
+                          if (ls) {
+                            ls.setItem("netops.experiments.dashboard.runId", id);
+                          }
                         } catch {
                           // ignore
                         }
@@ -1917,19 +2437,23 @@ export function ExperimentsView() {
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     <div className="lg:col-span-2">
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Nome do Experimento</div>
-                      <Input value={config.general.name} onChange={(e) => setConfig((p) => ({ ...p, general: { ...p.general, name: e.target.value } }))} />
+                      <Input value={config.general.name} onChange={(e) => updateConfig((p) => ({ ...p, general: { ...p.general, name: e.target.value } }))} />
                     </div>
                     <div className="lg:col-span-2">
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Descrição Científica</div>
-                      <Input value={config.general.scientificDescription} onChange={(e) => setConfig((p) => ({ ...p, general: { ...p.general, scientificDescription: e.target.value } }))} placeholder="Hipótese, método, variáveis..." />
+                      <Input value={config.general.scientificDescription} onChange={(e) => updateConfig((p) => ({ ...p, general: { ...p.general, scientificDescription: e.target.value } }))} placeholder="Hipótese, método, variáveis..." />
                     </div>
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Duração (segundos)</div>
-                      <Input type="number" min={1} value={config.general.durationS} onChange={(e) => setConfig((p) => ({ ...p, general: { ...p.general, durationS: Number(e.target.value) } }))} />
+                      <Input type="number" min={1} value={config.general.durationS} onChange={(e) => updateConfig((p) => ({ ...p, general: { ...p.general, durationS: Number(e.target.value) } }))} />
                     </div>
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Intervalo de Amostragem (ms)</div>
-                      <Input type="number" min={50} value={config.general.samplingMs} onChange={(e) => setConfig((p) => ({ ...p, general: { ...p.general, samplingMs: Number(e.target.value) } }))} />
+                      <Input type="number" min={50} value={config.general.samplingMs} onChange={(e) => updateConfig((p) => ({ ...p, general: { ...p.general, samplingMs: Number(e.target.value) } }))} />
+                    </div>
+                    <div>
+                      <div className="mb-1 text-[11px] font-medium text-fg-1">Número de Repetições</div>
+                      <Input type="number" min={1} max={100} value={config.general.repeatCount ?? 1} onChange={(e) => updateConfig((p) => ({ ...p, general: { ...p.general, repeatCount: Number(e.target.value) } }))} />
                     </div>
                   </div>
                 </div>
@@ -1969,7 +2493,7 @@ export function ExperimentsView() {
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Origem</div>
-                      <Select value={config.traffic.srcHostId} onChange={(e) => setConfig((p) => ({ ...p, traffic: { ...p.traffic, srcHostId: e.target.value } }))}>
+                      <Select value={config.traffic.srcHostId} onChange={(e) => updateConfig((p) => ({ ...p, traffic: { ...p.traffic, srcHostId: e.target.value } }))}>
                         {HOST_IDS.map((h) => (
                           <option key={h} value={h}>{h}</option>
                         ))}
@@ -1977,7 +2501,7 @@ export function ExperimentsView() {
                     </div>
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Destino</div>
-                      <Select value={config.traffic.dstHostId} onChange={(e) => setConfig((p) => ({ ...p, traffic: { ...p.traffic, dstHostId: e.target.value } }))}>
+                      <Select value={config.traffic.dstHostId} onChange={(e) => updateConfig((p) => ({ ...p, traffic: { ...p.traffic, dstHostId: e.target.value } }))}>
                         {HOST_IDS.map((h) => (
                           <option key={h} value={h}>{h}</option>
                         ))}
@@ -1985,7 +2509,7 @@ export function ExperimentsView() {
                     </div>
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Tipo de Tráfego</div>
-                      <Select value={config.traffic.type} onChange={(e) => setConfig((p) => ({ ...p, traffic: { ...p.traffic, type: e.target.value as TrafficType } }))}>
+                      <Select value={config.traffic.type} onChange={(e) => updateConfig((p) => ({ ...p, traffic: { ...p.traffic, type: e.target.value as TrafficType } }))}>
                         {(["TCP", "UDP", "ICMP", "HTTP", "gRPC"] as TrafficType[]).map((t) => (
                           <option key={t} value={t}>{t}</option>
                         ))}
@@ -1994,8 +2518,8 @@ export function ExperimentsView() {
                     <div>
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Carga/Taxa</div>
                       <div className="grid grid-cols-[1fr_120px] gap-2">
-                        <Input type="number" min={0} value={config.traffic.rateValue} onChange={(e) => setConfig((p) => ({ ...p, traffic: { ...p.traffic, rateValue: Number(e.target.value) } }))} />
-                        <Select value={config.traffic.rateUnit} onChange={(e) => setConfig((p) => ({ ...p, traffic: { ...p.traffic, rateUnit: e.target.value as RateUnit } }))}>
+                        <Input type="number" min={0} value={config.traffic.rateValue} onChange={(e) => updateConfig((p) => ({ ...p, traffic: { ...p.traffic, rateValue: Number(e.target.value) } }))} />
+                        <Select value={config.traffic.rateUnit} onChange={(e) => updateConfig((p) => ({ ...p, traffic: { ...p.traffic, rateUnit: e.target.value as RateUnit } }))}>
                           <option value="pps">Pacotes/seg</option>
                           <option value="Mbps">Mbps</option>
                         </Select>
@@ -2022,12 +2546,10 @@ export function ExperimentsView() {
                     </div>
                   ) : null}
 
-                  <div className="max-h-[420px] overflow-auto pr-1">
-                    <div className="space-y-2">
-                      {L0_L7.map((layer) => (
-                        <LayerGroup key={layer} layer={layer} selectedKeys={selectedMetricKeys} setSelectedKeys={setSelectedMetricKeys} />
-                      ))}
-                    </div>
+                  <div className="space-y-2">
+                    {L0_L7.map((layer) => (
+                      <LayerGroup key={layer} layer={layer} selectedKeys={selectedMetricKeys} setSelectedKeys={setSelectedMetricKeys} />
+                    ))}
                   </div>
                 </div>
 
@@ -2039,7 +2561,7 @@ export function ExperimentsView() {
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Pré-execução (script/comandos)</div>
                       <textarea
                         value={config.scripts.pre}
-                        onChange={(e) => setConfig((p) => ({ ...p, scripts: { ...p.scripts, pre: e.target.value } }))}
+                        onChange={(e) => updateConfig((p) => ({ ...p, scripts: { ...p.scripts, pre: e.target.value } }))}
                         className={cn(
                           "h-28 w-full resize-none rounded-lg border border-border-0/60 bg-bg-2/20 px-3 py-2",
                           "text-[12px] text-fg-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ok/50",
@@ -2051,7 +2573,7 @@ export function ExperimentsView() {
                       <div className="mb-1 text-[11px] font-medium text-fg-1">Pós-execução (script/comandos)</div>
                       <textarea
                         value={config.scripts.post}
-                        onChange={(e) => setConfig((p) => ({ ...p, scripts: { ...p.scripts, post: e.target.value } }))}
+                        onChange={(e) => updateConfig((p) => ({ ...p, scripts: { ...p.scripts, post: e.target.value } }))}
                         className={cn(
                           "h-28 w-full resize-none rounded-lg border border-border-0/60 bg-bg-2/20 px-3 py-2",
                           "text-[12px] text-fg-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ok/50",
@@ -2383,10 +2905,25 @@ export function ExperimentsView() {
                     <div className="flex items-center gap-2">
                       <ProgressRing pct={progressPct} />
                       <div>
-                        <div className="text-[11px] text-fg-1">Tempo restante</div>
+                        <div className="text-[11px] text-fg-1">
+                          Tempo restante {totalRepeats > 1 ? `(Exp. ${currentRepeat}/${totalRepeats})` : ""}
+                        </div>
                         <div className="font-mono text-[12px] text-fg-0">{runStatus === "idle" ? "—" : formatRemaining(runRemainingMs)}</div>
                       </div>
                     </div>
+                    {totalRepeats > 1 && runStatus !== "idle" && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-bg-2/50 flex items-center justify-center">
+                          <div className="text-[10px] text-fg-1">🔁</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-fg-1">Tempo total restante</div>
+                          <div className="font-mono text-[12px] text-fg-0">
+                            {formatRemaining(runRemainingMs + (totalRepeats - currentRepeat) * config.general.durationS * 1000)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
